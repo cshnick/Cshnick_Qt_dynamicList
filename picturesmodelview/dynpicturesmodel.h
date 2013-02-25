@@ -94,6 +94,13 @@ class DPListView : public QListView
 
 public:
     DPListView (QWidget *parent = 0);
+    QVector<QModelIndex> visibleInArea(const QRect &pArea);
+
+protected:
+    void resizeEvent(QResizeEvent *);
+
+private:
+    QListViewPrivate *privPtr();
 };
 
 class DPItemDelegate : public QStyledItemDelegate
