@@ -13,27 +13,7 @@ class DynPicturesManagerlPrivate;
 class DPListModelPrivate;
 class Page;
 class DPListView; 
-class DPListModel;
-
-class DynPicturesManagerlPrivate : public QObject
-{
-    Q_OBJECT
-
-public:
-    DynPicturesManagerlPrivate(const QUrl &dataUrl);
-    ~DynPicturesManagerlPrivate();
-
-    void createPages();
-
-private:
-    QUrl storageUrl;
-    QList<Page*> pageList;
-    DPListView *mView;
-    DPListModel *mModel;
-
-    friend class DynPicturesManager;
-};
-
+class DPImageGenerator;
 
 class PICTURESMODELVIEWSHARED_EXPORT DynPicturesManager : public QObject
 {
@@ -45,6 +25,7 @@ public:
 
     void setVisible(bool pVisible);
     DPListView *view() const;
+    void installPageGenerator(DPImageGenerator *generator);
 
     static QString sizeToString(const QSize &pSize);
 
@@ -54,20 +35,7 @@ private:
     friend class DynPicturesManagerlPrivate;
 };
 
-class DPListModelPrivate : public QObject
-{
-    Q_OBJECT
-
-public:
-    DPListModelPrivate(QList<Page*> *pPageList);
-    ~DPListModelPrivate();
-
-private:
-    QList<Page*> *pageList;
-    QMap<QString, QImage*> emptyImagePatterns;
-
-    friend class DPListModel;
-};
+class DPListModel;
 
 class DPListModel : public QAbstractListModel
 {
@@ -109,6 +77,36 @@ class DPItemDelegate : public QStyledItemDelegate
 
 public:
     DPItemDelegate(QObject *parent = 0);
+};
+
+struct DPImageRequest
+{
+    int w;
+    int h;
+    int pageNo;
+};
+
+class DPImageGeneratorPrivate;
+
+class PICTURESMODELVIEWSHARED_EXPORT DPImageGenerator : public QObject
+{
+    Q_OBJECT
+
+public:
+    DPImageGenerator();
+    virtual ~DPImageGenerator();
+
+    virtual QImage *imageForindex(int index);
+    virtual qint64 imageCount() = 0;
+
+private slots:
+    void processRequestStack();
+
+private:
+    DPImageGeneratorPrivate *d;
+
+    friend class DPImageGeneratorPrivate;
+
 };
 
 #endif // DYNPICTURESMANAGER_H

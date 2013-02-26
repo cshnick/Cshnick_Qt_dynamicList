@@ -3,4 +3,6 @@ CONFIG += ordered
 
 SUBDIRS += \
     picturesmodelview \
+    TstGenerator \
     bin
+
