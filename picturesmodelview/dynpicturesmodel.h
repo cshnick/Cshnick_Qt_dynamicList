@@ -64,7 +64,7 @@ public:
 
 private:
     QList<Page*> *pageList;
-    QMap<QString, QPixmap*> emptyImagePatterns;
+    QMap<QString, QImage*> emptyImagePatterns;
 
     friend class DPListModel;
 };

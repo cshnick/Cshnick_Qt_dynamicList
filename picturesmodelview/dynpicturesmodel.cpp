@@ -12,7 +12,7 @@ static const QSize iconSize(cellSize / 1.4, cellSize / 1.4);
 
 struct Page
 {
-    Page(const QUrl &pSourceUrl, QPixmap *pPix = 0)
+    Page(const QUrl &pSourceUrl, QImage *pPix = 0)
         : sourceUrl(pSourceUrl)
         , w(0)
         , h(0)
@@ -23,16 +23,16 @@ struct Page
 
     void setSourcePix(const QUrl &pixUrl)
     {
-        QPixmap *newPix = new QPixmap();
+        QImage *newPix = new QImage();
         if (newPix->load(pixUrl.toLocalFile())) {
             if (pix) {
                 delete pix;
                 pix = 0;
             }
             if (newPix->size() != Constants::iconSize) {
-                QPixmap scaled = newPix->scaled(Constants::iconSize, Qt::KeepAspectRatio);
+                QImage scaled = newPix->scaled(Constants::iconSize, Qt::KeepAspectRatio);
                 delete newPix;
-                newPix = new QPixmap(scaled);
+                newPix = new QImage(scaled);
             }
             pix = newPix;
             w = newPix->width();
@@ -44,7 +44,7 @@ struct Page
     int w;
     int h;
     int titleNo;
-    QPixmap *pix;
+    QImage *pix;
 };
 
 DynPicturesManagerlPrivate::DynPicturesManagerlPrivate(const QUrl &dataUrl)
@@ -136,14 +136,14 @@ QString DynPicturesManager::sizeToString(const QSize &pSize)
 DPListModelPrivate::DPListModelPrivate(QList<Page*> *pPageList)
     : pageList(pPageList)
 {
-    QPixmap *newPix = new QPixmap(Constants::iconSize);
+    QImage *newPix = new QImage(Constants::iconSize, QImage::Format_RGB888);
     newPix->fill(Qt::gray);
     emptyImagePatterns.insert(DynPicturesManager::sizeToString(Constants::iconSize), newPix);
 }
 
 DPListModelPrivate::~DPListModelPrivate()
 {
-    foreach(QPixmap *pix, emptyImagePatterns) {
+    foreach(QImage *pix, emptyImagePatterns) {
         delete pix;
         pix = 0;
     }
@@ -188,11 +188,11 @@ QVariant DPListModel::data(const QModelIndex &index, int role) const
         return QString("Page %1").arg(index.row());
         break;
     case Qt::DecorationRole :
-        QPixmap *curPix = d->pageList->at(index.row())->pix;
+        QImage *curPix = d->pageList->at(index.row())->pix;
         if (curPix) {
             return *curPix;
         } else {
-            Q_ASSERT(*d->emptyImagePatterns.values().first());
+            Q_ASSERT(d->emptyImagePatterns.values().first());
             return *d->emptyImagePatterns.values().first();
         }
         break;
