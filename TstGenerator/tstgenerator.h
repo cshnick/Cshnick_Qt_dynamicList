@@ -4,13 +4,15 @@
 #include "TstGenerator_global.h"
 #include "dynpicturesmodel.h"
 
-class TSTGENERATORSHARED_EXPORT TstGenerator : public DPImageGenerator
+class TSTGENERATORSHARED_EXPORT TstGenerator : public DPImageServicer
 {
-public:
-    TstGenerator();
+    Q_OBJECT
 
-    qint64 imageCount();
-    QImage *imageForindex(int index);
+public:
+    TstGenerator(QObject *parent = 0);
+
+    qint64 imageCount() const;
+    QImage *imageForindex(int index) const;
 
 };
 

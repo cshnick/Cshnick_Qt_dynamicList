@@ -3,13 +3,6 @@
 #include <QtGui>
 #include <private/qlistview_p.h>
 
-static const int cellSize = 80;
-namespace Constants {
-static const QSize gridSize(cellSize, cellSize);
-static const QSize iconSize(cellSize / 1.4, cellSize / 1.4);
-static const int pageRole = Qt::UserRole + 1;
-}
-
 struct Page
 {
     Page(const QUrl &pSourceUrl, QImage *pPix = 0)
@@ -29,8 +22,8 @@ struct Page
                 delete pix;
                 pix = 0;
             }
-            if (newPix->size() != Constants::iconSize) {
-                QImage scaled = newPix->scaled(Constants::iconSize, Qt::KeepAspectRatio);
+            if (newPix->size() != Globals::defaultIconSize) {
+                QImage scaled = newPix->scaled(Globals::defaultIconSize, Qt::KeepAspectRatio);
                 delete newPix;
                 newPix = new QImage(scaled);
             }
@@ -47,8 +40,8 @@ struct Page
                 delete pix;
                 pix = 0;
             }
-            if (img->size() != Constants::iconSize) {
-                QImage scaled = img->scaled(Constants::iconSize, Qt::KeepAspectRatio);
+            if (img->size() != Globals::defaultIconSize) {
+                QImage scaled = img->scaled(Globals::defaultIconSize, Qt::KeepAspectRatio);
                 delete img;
                 img = new QImage(scaled);
             }
@@ -73,21 +66,22 @@ public:
         : storageUrl(dataUrl)
         , mView(0)
         , mModel(0)
-        , mGenerator(0)
         , mGeneratorThread(0)
+        , mCentralWidget(0)
     {
         mView = new DPListView();
         mModel = new DPListModel(&pageList);
-        emptyImagePatterns.insert(DynPicturesManager::sizeToString(Constants::iconSize), createBlancImage(Constants::iconSize));
+        emptyImagePatterns.insert(DynPicturesManager::sizeToString(Globals::defaultIconSize), createBlancImage(Globals::defaultIconSize));
         mModel->setEmptyImagePatterns(&emptyImagePatterns);
         mView->setModel(mModel);
-        mView->hide();
+        setupUi();
+
     }
 
     ~DynPicturesManagerlPrivate()
     {
-        if (mView) {
-            delete mView;
+        if (mCentralWidget) {
+            delete mCentralWidget;
         }
         qDeleteAll(pageList);
         pageList.clear();
@@ -103,11 +97,11 @@ public:
 
     void createPages()
     {
-        if (!mGenerator) {
+        if (!mGeneratorThread) {
             return;
         }
 
-        qint64 pageCount = mGenerator->imageCount();
+        qint64 pageCount = mGeneratorThread->imageCount();
         QTime currentTime = QTime::currentTime();
         for (int i = 0; i < pageCount; i++) {
             Page *curPage = new Page(QUrl());
@@ -168,23 +162,39 @@ public:
         return newPix;
     }
 
-    void installPageGenerator(DPImageGenerator *generator)
+    void installPageGenerator(DPImageServicer *generator)
     {
-        mGenerator = generator;
-        createPages();
-        if (!mGeneratorThread) {
-            qRegisterMetaType<DPImageRequest>("DPImageRequest");
-            qRegisterMetaType<DPImageReply>("DPImageReply");
-            mGeneratorThread = new DPImageServicer();
+        mGeneratorThread = generator;
+        if (mGeneratorThread) {
 
+            createPages();
 
             QObject::connect(mView, SIGNAL(sendRequest(DPImageRequest)), mGeneratorThread, SLOT(replyOnRequest(DPImageRequest)));
             QObject::connect(mGeneratorThread, SIGNAL(sendReply(DPImageReply)), mModel, SLOT(reactOnImageReply(DPImageReply)));
 
             mGeneratorThread->start(QThread::LowPriority);
         }
+    }
 
-        createPages();
+    void setupUi()
+    {
+        mCentralWidget = new QWidget();
+        QVBoxLayout *mainLayer = new QVBoxLayout();
+
+        QHBoxLayout *widgetsLayout = new QHBoxLayout();
+        widgetsLayout->addWidget(new QListView);
+        widgetsLayout->addWidget(mView, 1);
+
+        QHBoxLayout *sliderLayout = new QHBoxLayout();
+        sliderLayout->addSpacerItem(new QSpacerItem(300, 0, QSizePolicy::Expanding));
+        sliderLayout->addWidget(new QSlider(Qt::Horizontal));
+
+        mainLayer->addLayout(widgetsLayout);
+        mainLayer->addLayout(sliderLayout);
+
+        mCentralWidget->setLayout(mainLayer);
+        mCentralWidget->setGeometry(0, 0, 800, 600);
+        mCentralWidget->setVisible(false);
     }
 
 private:
@@ -192,9 +202,9 @@ private:
     QList<Page*> pageList;
     DPListView *mView;
     DPListModel *mModel;
-    DPImageGenerator* mGenerator;
     DynPicturesManager::EmptyPatterns emptyImagePatterns;
     DPImageServicer *mGeneratorThread;
+    QWidget *mCentralWidget;
 
     friend class DynPicturesManager;
 };
@@ -203,6 +213,8 @@ DynPicturesManager::DynPicturesManager(const QUrl &dataUrl, QObject *parent)
     :QObject(parent)
     , d(new DynPicturesManagerlPrivate(dataUrl))
 {
+    qRegisterMetaType<DPImageRequest>("DPImageRequest");
+    qRegisterMetaType<DPImageReply>("DPImageReply");
 }
 
 DynPicturesManager::~DynPicturesManager()
@@ -214,8 +226,8 @@ DynPicturesManager::~DynPicturesManager()
 
 void DynPicturesManager::setVisible(bool pVisible)
 {
-    Q_ASSERT(d->mView);
-    d->mView->setVisible(pVisible);
+    Q_ASSERT(d->mCentralWidget);
+    d->mCentralWidget->setVisible(pVisible);
 }
 
 DPListView *DynPicturesManager::view() const
@@ -223,7 +235,12 @@ DPListView *DynPicturesManager::view() const
     return d->mView;
 }
 
-void DynPicturesManager::installPageGenerator(DPImageGenerator *generator)
+QWidget *DynPicturesManager::widget() const
+{
+    return d->mCentralWidget;
+}
+
+void DynPicturesManager::installPageGenerator(DPImageServicer *generator)
 {
     d->installPageGenerator(generator);
 }
@@ -296,7 +313,7 @@ QVariant DPListModel::data(const QModelIndex &index, int role) const
     }
 
     switch (role) {
-    case Constants::pageRole :
+    case Globals::pageRole :
         return QVariant::fromValue(d->pageList->at(index.row()));
 
     case Qt::TextAlignmentRole :
@@ -326,6 +343,8 @@ void DPListModel::reactOnImageReply(DPImageReply reply)
         Page *curPage = d->pageList->at(indexRow);
         Q_ASSERT(curPage);
         curPage->pix = reply.image;
+        QModelIndex curIndex  = index(indexRow);
+        emit dataChanged(curIndex, curIndex);
     }
 }
 
@@ -333,7 +352,7 @@ DPListView::DPListView(QWidget *parent)
     : QListView(parent)
 {
     setViewMode(IconMode);
-    setGridSize(Constants::gridSize);
+    setGridSize(Globals::defaultGridSize);
     setResizeMode(Adjust);
     setSelectionMode(ContiguousSelection);
 }
@@ -380,9 +399,9 @@ void DPListView::updateEmptyPagesData()
 {
     QTime currentTime = QTime::currentTime();
     foreach (QModelIndex index, visibleInArea(viewport()->geometry())) {
-        Page *curPage = index.data(Constants::pageRole).value<Page*>();
+        Page *curPage = index.data(Globals::pageRole).value<Page*>();
         if (!curPage->pix) {
-            DPImageRequest request(Constants::iconSize.width(), Constants::iconSize.height(), index.row(), 0);
+            DPImageRequest request(Globals::defaultIconSize.width(), Globals::defaultIconSize.height(), index.row(), 0);
             emit sendRequest(request);
         }
     }
@@ -412,7 +431,7 @@ public:
         QImage *image = q->imageForindex(pageIndex);
 
         if (image->size() != QSize(newWidth, newHeight)) {
-            QImage scaled = image->scaled(Constants::iconSize, Qt::KeepAspectRatio);
+            QImage scaled = image->scaled(Globals::defaultIconSize, Qt::KeepAspectRatio);
             delete image;
             image = new QImage(scaled);
         }
@@ -483,6 +502,36 @@ class DPImageServicerPrivate
         mMutex.unlock();
     }
 
+    void run()
+    {
+        forever {
+            mMutex.lock();
+            DPImageRequest curReq = requests.isEmpty() ? DPImageRequest() : requests.takeFirst();
+            mMutex.unlock();
+
+            if (abort) {
+                return;
+            }
+            if (curReq.isValid()) {
+//                mMutex.lock();
+                QImage *image = q->imageForindex(curReq.pageNo);
+//                mMutex.unlock();
+                if (!image->isNull() && image->size() != Globals::defaultIconSize) {
+                    QImage scaled = image->scaled(Globals::defaultIconSize, Qt::KeepAspectRatio);
+                    delete image;
+                    image = new QImage(scaled);
+                }
+
+                emit q->sendReply(DPImageReply(image->width(), image->height(), curReq.pageNo, 0, image));
+            }
+
+            mMutex.lock();
+            if (requests.isEmpty())
+                mCondition.wait(&mMutex);
+            mMutex.unlock();
+        }
+    }
+
 private:
     QMutex mMutex;
     QWaitCondition mCondition;
@@ -512,27 +561,15 @@ void DPImageServicer::addRequest(DPImageRequest req)
     d->addRequest(req);
 }
 
+QImage *DPImageServicer::imageForindex(int index) const
+{
+    Q_UNUSED(index);
+    return 0;
+}
+
 void DPImageServicer::run()
 {
-    forever {
-        d->mMutex.lock();
-        DPImageRequest curReq = d->requests.isEmpty() ? DPImageRequest() : d->requests.takeFirst();
-        d->mMutex.unlock();
-
-        if (d->abort) {
-            return;
-        }
-        if (curReq.isValid()) {
-            QImage *image = new QImage(curReq.w, curReq.h, QImage::Format_ARGB32);
-            image->fill(Qt::black);
-            emit sendReply(DPImageReply(curReq, image));
-        }
-
-        d->mMutex.lock();
-        if (d->requests.isEmpty())
-            d->mCondition.wait(&(d->mMutex));
-        d->mMutex.unlock();
-    }
+    d->run();
 }
 
 void DPImageServicer::replyOnRequest(DPImageRequest request)

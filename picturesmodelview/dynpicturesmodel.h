@@ -16,8 +16,16 @@ class DPListModelPrivate;
 class Page;
 class DPListView; 
 class DPImageGenerator;
+class DPImageServicer;
 struct DPImageRequest;
 struct DPImageReply;
+
+namespace Globals {
+    static const int defaultCellSize = 80;
+    static const QSize defaultGridSize(defaultCellSize, defaultCellSize);
+    static const QSize defaultIconSize(defaultCellSize / 1.4, defaultCellSize / 1.4);
+    static const int pageRole = Qt::UserRole + 1;
+}
 
 class PICTURESMODELVIEWSHARED_EXPORT DynPicturesManager : public QObject
 {
@@ -31,7 +39,8 @@ public:
 
     void setVisible(bool pVisible);
     DPListView *view() const;
-    void installPageGenerator(DPImageGenerator *generator);
+    QWidget *widget() const;
+    void installPageGenerator(DPImageServicer *generator);
 
     static QString sizeToString(const QSize &pSize);
 
@@ -107,7 +116,7 @@ struct DPImageRequest
         , pageNo(-1)
         , generator(0)
         , pr(veryLow) {;}
-    DPImageRequest(int pw, int ph, int ppn, DPImageGenerator *pGenerator, priority ppr = veryLow)
+    DPImageRequest(int pw, int ph, int ppn, DPImageGenerator *pGenerator, priority ppr = veryHigh)
         : w(pw)
         , h(ph)
         , pageNo(ppn)
@@ -160,14 +169,17 @@ private:
 };
 
 class DPImageServicerPrivate;
-class DPImageServicer : public QThread
+class PICTURESMODELVIEWSHARED_EXPORT DPImageServicer : public QThread
 {
     Q_OBJECT
 
 public:
     DPImageServicer(QObject *parent = 0);
-    ~DPImageServicer();
+    virtual ~DPImageServicer();
     void addRequest(DPImageRequest req);
+
+    virtual QImage *imageForindex(int index) const;
+    virtual qint64 imageCount() const = 0;
 
 protected:
     void run();
