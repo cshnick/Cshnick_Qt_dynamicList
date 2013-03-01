@@ -187,7 +187,11 @@ public:
 
         QHBoxLayout *sliderLayout = new QHBoxLayout();
         sliderLayout->addSpacerItem(new QSpacerItem(300, 0, QSizePolicy::Expanding));
-        sliderLayout->addWidget(new QSlider(Qt::Horizontal));
+        QSlider *slider = new QSlider(Qt::Horizontal);
+        slider->setMinimum(80);
+        slider->setMaximum(250);
+        QObject::connect(slider, SIGNAL(valueChanged(int)), mView, SLOT(setNewGridSize(int)));
+        sliderLayout->addWidget(slider);
 
         mainLayer->addLayout(widgetsLayout);
         mainLayer->addLayout(sliderLayout);
@@ -388,6 +392,11 @@ void DPListView::scrollContentsBy(int dx, int dy)
 //    qDebug() << "content is scrolled by dx" << dx << "dy" << dy;
     updateEmptyPagesData();
     QListView::scrollContentsBy(dx, dy);
+}
+
+void DPListView::setNewGridSize(int newSize)
+{
+    qDebug() << "scroller value" << newSize;
 }
 
 QListViewPrivate* DPListView::privPtr()

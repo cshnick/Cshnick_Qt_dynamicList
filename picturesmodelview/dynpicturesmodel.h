@@ -90,6 +90,9 @@ protected:
 signals:
     void sendRequest(DPImageRequest pRequest);
 
+private slots:
+    void setNewGridSize(int newSize);
+
 private:
     QListViewPrivate *privPtr();
     void updateEmptyPagesData();
