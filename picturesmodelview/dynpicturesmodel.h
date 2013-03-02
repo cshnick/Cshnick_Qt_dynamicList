@@ -21,10 +21,11 @@ struct DPImageRequest;
 struct DPImageReply;
 
 namespace Globals {
-    static const int defaultCellSize = 80;
-    static const QSize defaultGridSize(defaultCellSize, defaultCellSize);
-    static const QSize defaultIconSize(defaultCellSize / 1.4, defaultCellSize / 1.4);
-    static const int pageRole = Qt::UserRole + 1;
+    const int defaultCellSize = 80;
+    const QSize defaultGridSize(defaultCellSize, defaultCellSize);
+    const QSize defaultIconSize(defaultCellSize / 1.4, defaultCellSize / 1.4);
+    const int pageRole = Qt::UserRole + 1;
+    const Qt::TransformationMode defTRansformationMode = Qt::SmoothTransformation;
 }
 
 class PICTURESMODELVIEWSHARED_EXPORT DynPicturesManager : public QObject

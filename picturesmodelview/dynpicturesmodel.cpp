@@ -23,7 +23,7 @@ struct Page
                 pix = 0;
             }
             if (newPix->size() != Globals::defaultIconSize) {
-                QImage scaled = newPix->scaled(Globals::defaultIconSize, Qt::KeepAspectRatio);
+                QImage scaled = newPix->scaled(Globals::defaultIconSize, Qt::KeepAspectRatio, Globals::defTRansformationMode);
                 delete newPix;
                 newPix = new QImage(scaled);
             }
@@ -40,11 +40,11 @@ struct Page
                 delete pix;
                 pix = 0;
             }
-            if (img->size() != Globals::defaultIconSize) {
-                QImage scaled = img->scaled(Globals::defaultIconSize, Qt::KeepAspectRatio);
-                delete img;
-                img = new QImage(scaled);
-            }
+//            if (img->size() != Globals::defaultIconSize) {
+//                QImage scaled = img->scaled(Globals::defaultIconSize, Qt::KeepAspectRatio);
+//                delete img;
+//                img = new QImage(scaled);
+//            }
             pix = img;
             w = img->width();
             h = img->height();
@@ -396,7 +396,9 @@ void DPListView::scrollContentsBy(int dx, int dy)
 
 void DPListView::setNewGridSize(int newSize)
 {
-    qDebug() << "scroller value" << newSize;
+    setGridSize(QSize(newSize, newSize));
+    setIconSize(QSize(newSize - 30, newSize -30));
+//    qDebug() << "scroller value" << newSize;
 }
 
 QListViewPrivate* DPListView::privPtr()
@@ -526,7 +528,7 @@ class DPImageServicerPrivate
                 QImage *image = q->imageForindex(curReq.pageNo);
 //                mMutex.unlock();
                 if (!image->isNull() && image->size() != Globals::defaultIconSize) {
-                    QImage scaled = image->scaled(Globals::defaultIconSize, Qt::KeepAspectRatio);
+                    QImage scaled = image->scaled(Globals::defaultIconSize, Qt::KeepAspectRatio, Globals::defTRansformationMode);
                     delete image;
                     image = new QImage(scaled);
                 }
