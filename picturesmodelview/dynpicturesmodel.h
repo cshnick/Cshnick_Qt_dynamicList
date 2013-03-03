@@ -21,9 +21,8 @@ struct DPImageRequest;
 struct DPImageReply;
 
 namespace Globals {
-    const int defaultCellSize = 80;
-    const QSize defaultGridSize(defaultCellSize, defaultCellSize);
-    const QSize defaultIconSize(defaultCellSize / 1.4, defaultCellSize / 1.4);
+    const int defaultCellSize = 150;
+    const int maxCellSize = 200;
     const int pageRole = Qt::UserRole + 1;
     const Qt::TransformationMode defTRansformationMode = Qt::SmoothTransformation;
 }
@@ -42,6 +41,10 @@ public:
     DPListView *view() const;
     QWidget *widget() const;
     void installPageGenerator(DPImageServicer *generator);
+
+    static void setCellSize(int newSize);
+    static QSize gridSize();
+    static QSize iconSize();
 
     static QString sizeToString(const QSize &pSize);
 

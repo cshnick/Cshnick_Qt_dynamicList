@@ -14,28 +14,9 @@ struct Page
     {
     }
 
-    void setSourcePix(const QUrl &pixUrl)
-    {
-        QImage *newPix = new QImage();
-        if (newPix->load(pixUrl.toLocalFile())) {
-            if (pix) {
-                delete pix;
-                pix = 0;
-            }
-            if (newPix->size() != Globals::defaultIconSize) {
-                QImage scaled = newPix->scaled(Globals::defaultIconSize, Qt::KeepAspectRatio, Globals::defTRansformationMode);
-                delete newPix;
-                newPix = new QImage(scaled);
-            }
-            pix = newPix;
-            w = newPix->width();
-            h = newPix->height();
-        }
-    }
-
     void setImage(QImage *img)
     {
-        if (img && !img->isNull()) {
+        if (img) {
             if (pix) {
                 delete pix;
                 pix = 0;
@@ -71,7 +52,8 @@ public:
     {
         mView = new DPListView();
         mModel = new DPListModel(&pageList);
-        emptyImagePatterns.insert(DynPicturesManager::sizeToString(Globals::defaultIconSize), createBlancImage(Globals::defaultIconSize));
+        QSize emptyPageSize = QSize(mCellSize, mCellSize);
+        emptyImagePatterns.insert(DynPicturesManager::sizeToString(emptyPageSize), createBlancImage(emptyPageSize));
         mModel->setEmptyImagePatterns(&emptyImagePatterns);
         mView->setModel(mModel);
         setupUi();
@@ -188,8 +170,8 @@ public:
         QHBoxLayout *sliderLayout = new QHBoxLayout();
         sliderLayout->addSpacerItem(new QSpacerItem(300, 0, QSizePolicy::Expanding));
         QSlider *slider = new QSlider(Qt::Horizontal);
-        slider->setMinimum(80);
-        slider->setMaximum(250);
+        slider->setMinimum(Globals::defaultCellSize);
+        slider->setMaximum(Globals::maxCellSize);
         QObject::connect(slider, SIGNAL(valueChanged(int)), mView, SLOT(setNewGridSize(int)));
         sliderLayout->addWidget(slider);
 
@@ -210,8 +192,11 @@ private:
     DPImageServicer *mGeneratorThread;
     QWidget *mCentralWidget;
 
+    static int mCellSize;
+
     friend class DynPicturesManager;
 };
+int DynPicturesManagerlPrivate::mCellSize = Globals::defaultCellSize;
 
 DynPicturesManager::DynPicturesManager(const QUrl &dataUrl, QObject *parent)
     :QObject(parent)
@@ -247,6 +232,21 @@ QWidget *DynPicturesManager::widget() const
 void DynPicturesManager::installPageGenerator(DPImageServicer *generator)
 {
     d->installPageGenerator(generator);
+}
+
+void DynPicturesManager::setCellSize(int newSize)
+{
+    DynPicturesManagerlPrivate::mCellSize = newSize;
+}
+
+QSize DynPicturesManager::gridSize()
+{
+    return QSize(DynPicturesManagerlPrivate::mCellSize, DynPicturesManagerlPrivate::mCellSize);
+}
+
+QSize DynPicturesManager::iconSize()
+{
+    return QSize(DynPicturesManagerlPrivate::mCellSize - 35, DynPicturesManagerlPrivate::mCellSize - 35);
 }
 
 QString DynPicturesManager::sizeToString(const QSize &pSize)
@@ -321,7 +321,7 @@ QVariant DPListModel::data(const QModelIndex &index, int role) const
         return QVariant::fromValue(d->pageList->at(index.row()));
 
     case Qt::TextAlignmentRole :
-        return Qt::AlignBottom;
+        return Qt::AlignCenter;
         break;
     case Qt::DisplayRole :
         return QString("Page %1").arg(index.row());
@@ -346,7 +346,7 @@ void DPListModel::reactOnImageReply(DPImageReply reply)
     if (d->pageList && indexRow != -1 && indexRow < d->pageList->count()) {
         Page *curPage = d->pageList->at(indexRow);
         Q_ASSERT(curPage);
-        curPage->pix = reply.image;
+        curPage->setImage(reply.image);
         QModelIndex curIndex  = index(indexRow);
         emit dataChanged(curIndex, curIndex);
     }
@@ -356,7 +356,8 @@ DPListView::DPListView(QWidget *parent)
     : QListView(parent)
 {
     setViewMode(IconMode);
-    setGridSize(Globals::defaultGridSize);
+    setGridSize(DynPicturesManager::gridSize());
+    setIconSize(DynPicturesManager::iconSize());
     setResizeMode(Adjust);
     setSelectionMode(ContiguousSelection);
 }
@@ -396,8 +397,9 @@ void DPListView::scrollContentsBy(int dx, int dy)
 
 void DPListView::setNewGridSize(int newSize)
 {
-    setGridSize(QSize(newSize, newSize));
-    setIconSize(QSize(newSize - 30, newSize -30));
+    DynPicturesManager::setCellSize(newSize);
+    setGridSize(DynPicturesManager::gridSize());
+    setIconSize(DynPicturesManager::iconSize());
 //    qDebug() << "scroller value" << newSize;
 }
 
@@ -412,7 +414,7 @@ void DPListView::updateEmptyPagesData()
     foreach (QModelIndex index, visibleInArea(viewport()->geometry())) {
         Page *curPage = index.data(Globals::pageRole).value<Page*>();
         if (!curPage->pix) {
-            DPImageRequest request(Globals::defaultIconSize.width(), Globals::defaultIconSize.height(), index.row(), 0);
+            DPImageRequest request(DynPicturesManager::iconSize().width(), DynPicturesManager::iconSize().height(), index.row(), 0);
             emit sendRequest(request);
         }
     }
@@ -441,8 +443,8 @@ public:
 
         QImage *image = q->imageForindex(pageIndex);
 
-        if (image->size() != QSize(newWidth, newHeight)) {
-            QImage scaled = image->scaled(Globals::defaultIconSize, Qt::KeepAspectRatio);
+        if (image || image->size() != QSize(newWidth, newHeight)) {
+            QImage scaled = image->scaled(newWidth, newHeight, Qt::KeepAspectRatio);
             delete image;
             image = new QImage(scaled);
         }
@@ -527,8 +529,8 @@ class DPImageServicerPrivate
 //                mMutex.lock();
                 QImage *image = q->imageForindex(curReq.pageNo);
 //                mMutex.unlock();
-                if (!image->isNull() && image->size() != Globals::defaultIconSize) {
-                    QImage scaled = image->scaled(Globals::defaultIconSize, Qt::KeepAspectRatio, Globals::defTRansformationMode);
+                if (!image->isNull() && image->size() != QSize(curReq.w, curReq.h)) {
+                    QImage scaled = image->scaled(curReq.w, curReq.h, Qt::KeepAspectRatio, Globals::defTRansformationMode);
                     delete image;
                     image = new QImage(scaled);
                 }
