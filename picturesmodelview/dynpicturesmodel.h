@@ -48,6 +48,9 @@ public:
 
     static QString sizeToString(const QSize &pSize);
 
+private slots:
+    void cleanMemory();
+
 private:
     DynPicturesManagerlPrivate* d;
 

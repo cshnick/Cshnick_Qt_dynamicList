@@ -43,8 +43,9 @@ Q_DECLARE_METATYPE(Page*)
 class DynPicturesManagerlPrivate
 {
 public:
-    DynPicturesManagerlPrivate(const QUrl &dataUrl)
-        : storageUrl(dataUrl)
+    DynPicturesManagerlPrivate(DynPicturesManager *pq, const QUrl &dataUrl)
+        : q(pq)
+        , storageUrl(dataUrl)
         , mView(0)
         , mModel(0)
         , mGeneratorThread(0)
@@ -169,6 +170,9 @@ public:
 
         QHBoxLayout *sliderLayout = new QHBoxLayout();
         sliderLayout->addSpacerItem(new QSpacerItem(300, 0, QSizePolicy::Expanding));
+        QPushButton *magicButton = new QPushButton("Don't push");
+        QObject::connect(magicButton, SIGNAL(clicked()), q, SLOT(cleanMemory()));
+        sliderLayout->addWidget(magicButton);
         QSlider *slider = new QSlider(Qt::Horizontal);
         slider->setMinimum(Globals::defaultCellSize);
         slider->setMaximum(Globals::maxCellSize);
@@ -184,6 +188,7 @@ public:
     }
 
 private:
+    DynPicturesManager *q;
     QUrl storageUrl;
     QList<Page*> pageList;
     DPListView *mView;
@@ -200,7 +205,7 @@ int DynPicturesManagerlPrivate::mCellSize = Globals::defaultCellSize;
 
 DynPicturesManager::DynPicturesManager(const QUrl &dataUrl, QObject *parent)
     :QObject(parent)
-    , d(new DynPicturesManagerlPrivate(dataUrl))
+    , d(new DynPicturesManagerlPrivate(this, dataUrl))
 {
     qRegisterMetaType<DPImageRequest>("DPImageRequest");
     qRegisterMetaType<DPImageReply>("DPImageReply");
@@ -252,6 +257,25 @@ QSize DynPicturesManager::iconSize()
 QString DynPicturesManager::sizeToString(const QSize &pSize)
 {
     return QString("%1x%2").arg(pSize.width()).arg(pSize.height());
+}
+
+void DynPicturesManager::cleanMemory()
+{
+//    for (int i = 0; i < d->pageList.count(); i++) {
+//        Page *&curPage = d->pageList[i];
+//        if (curPage) {
+//            delete curPage;
+//            curPage = 0;
+//        }
+//    }
+    foreach (Page *curPage, d->pageList) {
+        if (curPage->pix) {
+            delete curPage->pix;
+            curPage->pix = 0;
+        }
+    }
+
+    qDebug() << "clean memory";
 }
 
 class DPListModelPrivate
@@ -327,13 +351,25 @@ QVariant DPListModel::data(const QModelIndex &index, int role) const
         return QString("Page %1").arg(index.row());
         break;
     case Qt::DecorationRole :
-        QImage *curPix = d->pageList->at(index.row())->pix;
-        if (curPix) {
-            return *curPix;
-        } else {
-            Q_ASSERT(d->emptyImagePatterns && d->emptyImagePatterns->values().first());
-            return *d->emptyImagePatterns->values().first();
-        }
+        QImage *&curPix = d->pageList->at(index.row())->pix;
+//        if (curPix) {
+//            delete curPix;
+//            curPix = 0;
+//        }
+//        if (curPix) {
+//            return *curPix;
+//        } else {
+//            Q_ASSERT(d->emptyImagePatterns && d->emptyImagePatterns->values().first());
+//            return *d->emptyImagePatterns->values().first();
+//        }
+//        QPixmap newPix("/home/luxa/.local/share/data/Sankore/document/Sankore Document 2013-02-23 11-52-08.311/page002.thumbnail.jpg");
+//        return QIcon(newPix);
+        QString fileName = QString("page%1.thumbnail.jpg").arg(index.row(), 3, 10, QLatin1Char('0'));
+        QString filePath = "/home/luxa/.local/share/data/Sankore/document/Sankore Document 2013-02-23 11-52-08.311/" + fileName;
+        Q_ASSERT(QFileInfo(filePath).exists());
+
+//        return QIcon(QPixmap(filePath));
+        return *curPix;
         break;
     }
 
