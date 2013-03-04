@@ -1,7 +1,7 @@
 #include "tstgenerator.h"
 #include <QtGui>
 
-static const QUrl storageUrl = QUrl::fromLocalFile("/home/luxa/.local/share/data/Sankore/document/Sankore Document 2013-02-23 11-52-08.311");
+static const QUrl storageUrl = QUrl::fromLocalFile("/home/ilia/.local/share/data/Sankore/document/Sankore Document 2013-02-21 18-58-39.236");
 
 
 TstGenerator::TstGenerator(QObject *parent)

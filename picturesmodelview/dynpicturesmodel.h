@@ -25,6 +25,9 @@ namespace Globals {
     const int maxCellSize = 200;
     const int pageRole = Qt::UserRole + 1;
     const Qt::TransformationMode defTRansformationMode = Qt::SmoothTransformation;
+    const int cleanerTimerInterval = 10000; //5 seconds
+    const int saveMemoryMultipler = 1; //Allways save current viewport and cache indexes above and under the visible area;
+                                       //save visible QModelIndex count * saveMemoryMultipler on top and on the bottom
 }
 
 class PICTURESMODELVIEWSHARED_EXPORT DynPicturesManager : public QObject
@@ -50,6 +53,7 @@ public:
 
 private slots:
     void cleanMemory();
+    void startCleaningTimer();
 
 private:
     DynPicturesManagerlPrivate* d;
@@ -88,7 +92,8 @@ class DPListView : public QListView
 
 public:
     DPListView (QWidget *parent = 0);
-    QVector<QModelIndex> visibleInArea(const QRect &pArea);
+    QVector<QModelIndex> visibleInArea(const QRect &rect);
+    QVector<QModelIndex> cachedIndexes();
 
 protected:
     void resizeEvent(QResizeEvent *);

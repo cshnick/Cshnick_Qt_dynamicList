@@ -50,6 +50,7 @@ public:
         , mModel(0)
         , mGeneratorThread(0)
         , mCentralWidget(0)
+        , mCleaningMemTimer(0)
     {
         mView = new DPListView();
         mModel = new DPListModel(&pageList);
@@ -58,11 +59,16 @@ public:
         mModel->setEmptyImagePatterns(&emptyImagePatterns);
         mView->setModel(mModel);
         setupUi();
-
+        mCleaningMemTimer = new QTimer();
+        QObject::connect(mCleaningMemTimer, SIGNAL(timeout()), q, SLOT(cleanMemory()));
+        QTimer::singleShot(0, q, SLOT(startCleaningTimer()));
     }
 
     ~DynPicturesManagerlPrivate()
     {
+        if(mCleaningMemTimer) {
+            delete mCleaningMemTimer;
+        }
         if (mCentralWidget) {
             delete mCentralWidget;
         }
@@ -75,7 +81,6 @@ public:
         if (mGeneratorThread) {
             delete mGeneratorThread;
         }
-
     }
 
     void createPages()
@@ -196,6 +201,7 @@ private:
     DynPicturesManager::EmptyPatterns emptyImagePatterns;
     DPImageServicer *mGeneratorThread;
     QWidget *mCentralWidget;
+    QTimer *mCleaningMemTimer;
 
     static int mCellSize;
 
@@ -261,21 +267,34 @@ QString DynPicturesManager::sizeToString(const QSize &pSize)
 
 void DynPicturesManager::cleanMemory()
 {
-//    for (int i = 0; i < d->pageList.count(); i++) {
-//        Page *&curPage = d->pageList[i];
-//        if (curPage) {
-//            delete curPage;
-//            curPage = 0;
-//        }
-//    }
-    foreach (Page *curPage, d->pageList) {
-        if (curPage->pix) {
+
+    QTime currentTime = QTime::currentTime();
+
+    for (int i = 0; i < d->pageList.count(); i++) {
+        bool intersect = false;
+        QVector<QModelIndex> cachIndexes(d->mView->cachedIndexes());
+        foreach(QModelIndex curIndex, cachIndexes)
+        {
+            if (curIndex.row() == i) {
+                intersect = true;
+                break;
+            }
+        }
+        if (!intersect) {
+            Page *curPage = d->pageList.at(i);
             delete curPage->pix;
             curPage->pix = 0;
         }
     }
 
-    qDebug() << "clean memory";
+    qDebug() << "Cleaning memory finished. Elapsed time" << currentTime.msecsTo(QTime::currentTime());
+}
+
+void DynPicturesManager::startCleaningTimer()
+{
+    if (d->mCleaningMemTimer) {
+        d->mCleaningMemTimer->start(Globals::cleanerTimerInterval);
+    }
 }
 
 class DPListModelPrivate
@@ -362,10 +381,10 @@ QVariant DPListModel::data(const QModelIndex &index, int role) const
 //            Q_ASSERT(d->emptyImagePatterns && d->emptyImagePatterns->values().first());
 //            return *d->emptyImagePatterns->values().first();
 //        }
-//        QPixmap newPix("/home/luxa/.local/share/data/Sankore/document/Sankore Document 2013-02-23 11-52-08.311/page002.thumbnail.jpg");
+//        QPixmap newPix("/home/ilia/.local/share/data/Sankore/document/Sankore Document 2013-02-21 18-58-39.236/page002.thumbnail.jpg");
 //        return QIcon(newPix);
         QString fileName = QString("page%1.thumbnail.jpg").arg(index.row(), 3, 10, QLatin1Char('0'));
-        QString filePath = "/home/luxa/.local/share/data/Sankore/document/Sankore Document 2013-02-23 11-52-08.311/" + fileName;
+        QString filePath = "/home/ilia/.local/share/data/Sankore/document/Sankore Document 2013-02-21 18-58-39.236/" + fileName;
         Q_ASSERT(QFileInfo(filePath).exists());
 
 //        return QIcon(QPixmap(filePath));
@@ -400,7 +419,6 @@ DPListView::DPListView(QWidget *parent)
 
 QVector<QModelIndex> DPListView::visibleInArea(const QRect &pArea)
 {
-    Q_UNUSED(pArea)
     QRect rect(pArea.x() + horizontalOffset(), pArea.y() + verticalOffset(), pArea.width(), pArea.height());
     QTime currentTime = QTime::currentTime();
     QVector<QModelIndex> intersectVector = privPtr()->intersectingSet(rect);
@@ -416,6 +434,44 @@ QVector<QModelIndex> DPListView::visibleInArea(const QRect &pArea)
     qDebug() << "processing vector" << currentTime.msecsTo(QTime::currentTime());
 
     return intersectVector;
+}
+
+
+QVector<QModelIndex> DPListView::cachedIndexes()
+{
+    QTime currentTime = QTime::currentTime();
+    QVector<QModelIndex>visibleIndexesVector(visibleInArea(viewport()->geometry()));
+    if (!visibleIndexesVector.count()) {
+        return visibleIndexesVector;
+    }
+
+    int numIndexes = visibleIndexesVector.count();
+    int minIndex = visibleIndexesVector.first().row();
+    int maxIndex = visibleIndexesVector.first().row();
+    foreach (QModelIndex index, visibleIndexesVector) {
+        int indexRow = index.row();
+        if (indexRow < minIndex) {
+            minIndex = indexRow;
+        } else if (indexRow > maxIndex) {
+            maxIndex = indexRow;
+        }
+    }
+    int numIndexesToCache = numIndexes * Globals::saveMemoryMultipler;
+    //filling indexes above the visible
+    int startIndex = qMax(0, minIndex - numIndexesToCache);
+    for (int i = minIndex - 1; i >= startIndex; i--) {
+        QModelIndex curIndex = model()->index(i, 0);
+        visibleIndexesVector.prepend(curIndex);
+    }
+    //filling indexes under the visible
+    int endIndex = qMin(model()->rowCount() - 1, maxIndex + numIndexesToCache);
+    for (int i = maxIndex + 1; i <= endIndex; i++) {
+        QModelIndex curIndex = model()->index(i, 0);
+        visibleIndexesVector.append(curIndex);
+    }
+    qDebug() << "cachedIndexes() function time" << currentTime.msecsTo(QTime::currentTime());
+
+    return visibleIndexesVector;
 }
 
 void DPListView::resizeEvent(QResizeEvent *e)
@@ -447,20 +503,58 @@ QListViewPrivate* DPListView::privPtr()
 void DPListView::updateEmptyPagesData()
 {
     QTime currentTime = QTime::currentTime();
-    foreach (QModelIndex index, visibleInArea(viewport()->geometry())) {
+    QVector<QModelIndex>visibleIndexesVector(visibleInArea(viewport()->geometry()));
+    if (!visibleIndexesVector.count()) {
+        return;
+    }
+
+    int numIndexes = visibleIndexesVector.count();
+    int minIndex = visibleIndexesVector.first().row();
+    int maxIndex = visibleIndexesVector.first().row();
+    foreach (QModelIndex index, visibleIndexesVector) {
+        int indexRow = index.row();
+        if (indexRow < minIndex) {
+            minIndex = indexRow;
+        } else if (indexRow > maxIndex) {
+            maxIndex = indexRow;
+        }
         Page *curPage = index.data(Globals::pageRole).value<Page*>();
         if (!curPage->pix) {
             DPImageRequest request(DynPicturesManager::iconSize().width(), DynPicturesManager::iconSize().height(), index.row(), 0);
             emit sendRequest(request);
         }
     }
+    int numIndexesToCache = numIndexes * Globals::saveMemoryMultipler;
+    //caching rect above the visible
+    int startIndex = qMax(0, minIndex - numIndexesToCache);
+    for (int i = startIndex; i < minIndex; i++) {
+        Page *curPage = model()->index(i, 0).data(Globals::pageRole).value<Page*>();
+        if (!curPage->pix) {
+            DPImageRequest request(DynPicturesManager::iconSize().width(), DynPicturesManager::iconSize().height(), i, 0, DPImageRequest::veryLow);
+            emit sendRequest(request);
+        }
+    }
+    //caching rect under the visible
+    int endIndex = qMin(model()->rowCount() - 1, maxIndex + numIndexesToCache);
+    for (int i = maxIndex + 1; i <= endIndex; i++) {
+        Page *curPage = model()->index(i, 0).data(Globals::pageRole).value<Page*>();
+        if (!curPage->pix) {
+            DPImageRequest request(DynPicturesManager::iconSize().width(), DynPicturesManager::iconSize().height(), i, 0, DPImageRequest::veryLow);
+            emit sendRequest(request);
+        }
+    }
+    qDebug() << "numIndexes" << numIndexes << "numIndexesToCache" << numIndexesToCache
+             << "start above cache from" << startIndex << "endCache with" << minIndex << endl
+             << "visible index from " << minIndex << "to" << maxIndex << endl
+             << "start bottom cache from" << maxIndex + 1 << "end cache with" << endIndex << endl;
+
     qDebug() << "sendRequest time " << currentTime.msecsTo(QTime::currentTime());
+
 }
 
 DPItemDelegate::DPItemDelegate(QObject *parent)
     :QStyledItemDelegate(parent)
 {
-
 }
 
 class DPImageGeneratorPrivate
@@ -565,10 +659,15 @@ class DPImageServicerPrivate
 //                mMutex.lock();
                 QImage *image = q->imageForindex(curReq.pageNo);
 //                mMutex.unlock();
-                if (!image->isNull() && image->size() != QSize(curReq.w, curReq.h)) {
-                    QImage scaled = image->scaled(curReq.w, curReq.h, Qt::KeepAspectRatio, Globals::defTRansformationMode);
-                    delete image;
-                    image = new QImage(scaled);
+                if (image) {
+                    if (!image->isNull() && image->size() != QSize(curReq.w, curReq.h)) {
+                        QImage scaled = image->scaled(curReq.w, curReq.h, Qt::KeepAspectRatio, Globals::defTRansformationMode);
+                        delete image;
+                        image = new QImage(scaled);
+                    } else {
+                        delete image;
+                        image = 0;
+                    }
                 }
 
                 emit q->sendReply(DPImageReply(image->width(), image->height(), curReq.pageNo, 0, image));
