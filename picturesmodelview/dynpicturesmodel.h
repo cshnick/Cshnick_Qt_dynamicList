@@ -10,6 +10,7 @@
 #include <QUrl>
 #include <QThread>
 #include <QMutex>
+#include <QFlags>
 
 class DynPicturesManagerlPrivate;
 class DPListModelPrivate;
@@ -41,7 +42,7 @@ public:
     ~DynPicturesManager();
 
     void setVisible(bool pVisible);
-    DPListView *view() const;
+    DPListView *view(int index = 0) const;
     QWidget *widget() const;
     void installPageGenerator(DPImageServicer *generator);
 
@@ -91,9 +92,17 @@ class DPListView : public QListView
     Q_OBJECT
 
 public:
+    enum eAdditionalFlag {
+        fAutoExpanding = 1
+    };
+    Q_DECLARE_FLAGS(eAdditionalFlags, eAdditionalFlag)
+
     DPListView (QWidget *parent = 0);
     QVector<QModelIndex> visibleInArea(const QRect &rect);
     QVector<QModelIndex> cachedIndexes();
+
+    void setAdditionalFlags(eAdditionalFlags flags);
+    eAdditionalFlags additionalFlags();
 
 protected:
     void resizeEvent(QResizeEvent *);
@@ -108,7 +117,10 @@ private slots:
 private:
     QListViewPrivate *privPtr();
     void updateEmptyPagesData();
+
+    eAdditionalFlags mAdditionalFlags;
 };
+Q_DECLARE_OPERATORS_FOR_FLAGS(DPListView::eAdditionalFlags)
 
 class DPItemDelegate : public QStyledItemDelegate
 {
