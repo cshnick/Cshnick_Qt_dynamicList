@@ -98,6 +98,7 @@ public:
     Q_DECLARE_FLAGS(eAdditionalFlags, eAdditionalFlag)
 
     DPListView (QWidget *parent = 0);
+//    QVector<QModelIndex> visibleInArea(const QRect &rect);
     QVector<QModelIndex> visibleInArea(const QRect &rect);
     QVector<QModelIndex> cachedIndexes();
 
@@ -128,6 +129,10 @@ class DPItemDelegate : public QStyledItemDelegate
 
 public:
     DPItemDelegate(QObject *parent = 0);
+    void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const;
+
+protected:
+    void initStyleOption(QStyleOptionViewItem *option, const QModelIndex &index) const;
 };
 
 struct DPImageRequest
@@ -159,40 +164,13 @@ struct DPImageRequest
 
 struct DPImageReply : public DPImageRequest
 {
-    DPImageReply() : DPImageRequest(), image(0) {;}
-    DPImageReply(int pw, int ph, int ppn, DPImageGenerator *pGenerator,QImage *pImage)
+    DPImageReply() {;}
+    DPImageReply(int pw, int ph, int ppn, DPImageGenerator *pGenerator,const QImage &pImage)
         : DPImageRequest(pw, ph, ppn, pGenerator), image(pImage) {;}
-    DPImageReply(DPImageRequest req, QImage *pImage)
+    DPImageReply(DPImageRequest req, const QImage &pImage)
         : DPImageRequest(req), image(pImage) {;}
 
-    QImage *image;
-};
-
-class DPImageGeneratorPrivate;
-
-class PICTURESMODELVIEWSHARED_EXPORT DPImageGenerator : public QObject
-{
-    Q_OBJECT
-
-public:
-    DPImageGenerator();
-    virtual ~DPImageGenerator();
-
-    virtual QImage *imageForindex(int index);
-    virtual qint64 imageCount() = 0;
-
-signals:
-    void sendReply(DPImageReply reply);
-
-private slots:
-    void replyOnRequest(DPImageRequest request);
-
-private:
-    DPImageGeneratorPrivate *d;
-    QMutex mutex;
-
-    friend class DPImageGeneratorPrivate;
-
+    QImage image;
 };
 
 class DPImageServicerPrivate;
@@ -205,7 +183,7 @@ public:
     virtual ~DPImageServicer();
     void addRequest(DPImageRequest req);
 
-    virtual QImage *imageForindex(int index) const;
+    virtual QImage imageForindex(int index) const;
     virtual qint64 imageCount() const = 0;
 
 protected:

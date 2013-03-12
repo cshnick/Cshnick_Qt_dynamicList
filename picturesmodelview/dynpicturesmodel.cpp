@@ -42,17 +42,20 @@ public:
         : q(pq)
         , storageUrl(dataUrl)
         , mModel(0)
+        , mDelegate(0)
         , mGeneratorThread(0)
         , mCentralWidget(0)
         , mCleaningMemTimer(0)
     {
         mModel = new DPListModel(&pageList);
+        mDelegate = new DPItemDelegate();
         QSize emptyPageSize = QSize(mCellSize, mCellSize);
         emptyImagePatterns.insert(DynPicturesManager::sizeToString(emptyPageSize), createBlancImage(emptyPageSize));
         mModel->setEmptyImagePatterns(&emptyImagePatterns);
         setupUi();
         foreach (DPListView *view, mRegisteredViews) {
             view->setModel(mModel);
+            view->setItemDelegate(mDelegate);
         }
         mCleaningMemTimer = new QTimer();
         QObject::connect(mCleaningMemTimer, SIGNAL(timeout()), q, SLOT(cleanMemory()));
@@ -208,8 +211,8 @@ private:
     QUrl storageUrl;
     QList<Page*> pageList;
     QList<DPListView*> mRegisteredViews;
-//    DPListView *mView;
     DPListModel *mModel;
+    DPItemDelegate *mDelegate;
     DynPicturesManager::EmptyPatterns emptyImagePatterns;
     DPImageServicer *mGeneratorThread;
     QWidget *mCentralWidget;
@@ -280,29 +283,37 @@ QString DynPicturesManager::sizeToString(const QSize &pSize)
 void DynPicturesManager::cleanMemory()
 {
 
-//    QTime currentTime = QTime::currentTime();
+    QTime currentTime = QTime::currentTime();
 
-//    QVector<QModelIndex> cachIndexes(d->mView->cachedIndexes());
-//    int min = cachIndexes.first().row();
-//    int max = cachIndexes.last().row();
+    foreach (DPListView *view, d->mRegisteredViews) {
+        QVector<QModelIndex> cachIndexes(view->cachedIndexes());
+        int min = cachIndexes.first().row();
+        int max = cachIndexes.last().row();
 
-//    for (int i = 0; i < d->pageList.count(); i++) {
-//        if (i < min || i > max) {
-//            Page *curPage = d->pageList.at(i);
-//            delete curPage->pix;
-//            curPage->pix = 0;
-//        }
-//    }
+        for (int i = 0; i < d->pageList.count(); i++) {
+            if (i < min || i > max) {
+                Page *curPage = d->pageList.at(i);
+                delete curPage->pix;
+                curPage->pix = 0;
+            }
+        }
+    }
 
-//    qDebug() << "Cleaning memory finished. Elapsed time" << currentTime.msecsTo(QTime::currentTime());
-
+//    QPixmapCache::clear();
+    qDebug() << "Cleaning memory finished. Elapsed time" << currentTime.msecsTo(QTime::currentTime());
+    //    foreach (Page *pg, d->pageList) {
+    //        if (pg->pix) {
+    //            delete pg->pix;
+    //            pg->pix = 0;
+    //        }
+    //    }
 }
 
 void DynPicturesManager::startCleaningTimer()
 {
-    if (d->mCleaningMemTimer) {
-        d->mCleaningMemTimer->start(Globals::cleanerTimerInterval);
-    }
+//    if (d->mCleaningMemTimer) {
+//        d->mCleaningMemTimer->start(Globals::cleanerTimerInterval);
+//    }
 }
 
 class DPListModelPrivate
@@ -381,11 +392,12 @@ QVariant DPListModel::data(const QModelIndex &index, int role) const
         QImage *&curPix = d->pageList->at(index.row())->pix;
 
         if (curPix) {
-            return QIcon(QPixmap::fromImage(*curPix));
+//            return QIcon(QPixmap::fromImage(*curPix));
+            return *curPix;
         } else {
             return 0;
         }
-
+//        return 0;
         break;
     }
 
@@ -398,7 +410,7 @@ void DPListModel::reactOnImageReply(DPImageReply reply)
     if (d->pageList && indexRow != -1 && indexRow < d->pageList->count()) {
         Page *curPage = d->pageList->at(indexRow);
         Q_ASSERT(curPage);
-        curPage->setImage(reply.image);
+        curPage->setImage(new QImage(reply.image));
         QModelIndex curIndex  = index(indexRow);
         emit dataChanged(curIndex, curIndex);
     }
@@ -433,6 +445,39 @@ QVector<QModelIndex> DPListView::visibleInArea(const QRect &pArea)
 
     return intersectVector;
 }
+
+//QVector<QModelIndex> DPListView::visibleInArea(const QRect &pArea)
+//{
+//    QVector<QModelIndex> result;
+
+////    QRect rect(pArea.x() + horizontalOffset(), pArea.y() + verticalOffset(), pArea.width(), pArea.height());
+//    QRect rect = pArea;
+
+//    int gridHCenterOffsetTop = gridSize().width() / 2;
+//    int gridVBottomOffsetTop = gridSize().height() / 2;
+//    QPoint topLeftOffset(gridHCenterOffsetTop, gridVBottomOffsetTop);
+
+//    int gridHCenterOffsetBottom = (rect.width() % gridSize().width()) + (gridSize().width() / 2);
+//    int gridVBottomOffsetBottom = gridSize().height() / 2;
+//    QPoint bottomRightOffset(gridHCenterOffsetBottom, gridVBottomOffsetBottom);
+
+//    QModelIndex topLeftIndex = indexAt(rect.topLeft() + topLeftOffset);
+//    QModelIndex bottomRightIndex = indexAt(rect.bottomRight() - bottomRightOffset);
+
+//    if (!topLeftIndex.isValid() || ! bottomRightIndex.isValid()) {
+//        return QVector<QModelIndex>();
+//    }
+//    result.append(topLeftIndex);
+//    for (int i = topLeftIndex.row() + 1; i <= bottomRightIndex.row(); i++) {
+//        QModelIndex curIndex = model()->index(i, 0);
+//        if(curIndex.isValid()) {
+//            result.append(curIndex);
+//        }
+//    }
+
+//    qDebug() << "result is" << result;
+//    return result;
+//}
 
 
 QVector<QModelIndex> DPListView::cachedIndexes()
@@ -574,61 +619,87 @@ void DPListView::updateEmptyPagesData()
 DPItemDelegate::DPItemDelegate(QObject *parent)
     :QStyledItemDelegate(parent)
 {
+
 }
 
-class DPImageGeneratorPrivate
+void DPItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
-public:
-    DPImageGeneratorPrivate(DPImageGenerator *pq)
-        : q(pq)
-    {
+    QStyledItemDelegate::paint(painter, option, index);
+}
+
+void DPItemDelegate::initStyleOption(QStyleOptionViewItem *option, const QModelIndex &index) const
+{
+    QVariant value = index.data(Qt::FontRole);
+    if (value.isValid() && !value.isNull()) {
+        option->font = qvariant_cast<QFont>(value).resolve(option->font);
+        option->fontMetrics = QFontMetrics(option->font);
     }
 
-    void replyOnRequest(DPImageRequest request)
-    {
-        int newWidth = request.w;
-        int newHeight = request.h;
-        qint64 pageIndex = request.pageNo;
+    value = index.data(Qt::TextAlignmentRole);
+    if (value.isValid() && !value.isNull())
+        option->displayAlignment = Qt::Alignment(value.toInt());
 
-        QImage *image = q->imageForindex(pageIndex);
+    value = index.data(Qt::ForegroundRole);
+    if (value.canConvert<QBrush>())
+        option->palette.setBrush(QPalette::Text, qvariant_cast<QBrush>(value));
 
-        if (image || image->size() != QSize(newWidth, newHeight)) {
-            QImage scaled = image->scaled(newWidth, newHeight, Qt::KeepAspectRatio);
-            delete image;
-            image = new QImage(scaled);
+    if (QStyleOptionViewItemV4 *v4 = qstyleoption_cast<QStyleOptionViewItemV4 *>(option)) {
+        v4->index = index;
+        QVariant value = index.data(Qt::CheckStateRole);
+        if (value.isValid() && !value.isNull()) {
+            v4->features |= QStyleOptionViewItemV2::HasCheckIndicator;
+            v4->checkState = static_cast<Qt::CheckState>(value.toInt());
         }
 
-        emit q->sendReply(DPImageReply(request, image));
+        value = index.data(Qt::DecorationRole);
+        if (value.isValid() && !value.isNull()) {
+            v4->features |= QStyleOptionViewItemV2::HasDecoration;
+            switch (value.type()) {
+            case QVariant::Icon: {
+                v4->icon = qvariant_cast<QIcon>(value);
+                QIcon::Mode mode;
+                if (!(option->state & QStyle::State_Enabled))
+                    mode = QIcon::Disabled;
+                else if (option->state & QStyle::State_Selected)
+                    mode = QIcon::Selected;
+                else
+                    mode = QIcon::Normal;
+                QIcon::State state = option->state & QStyle::State_Open ? QIcon::On : QIcon::Off;
+                v4->decorationSize = v4->icon.actualSize(option->decorationSize, mode, state);
+                break;
+            }
+            case QVariant::Color: {
+                QPixmap pixmap(option->decorationSize);
+                pixmap.fill(qvariant_cast<QColor>(value));
+                v4->icon = QIcon(pixmap);
+                break;
+            }
+            case QVariant::Image: {
+                QImage image = qvariant_cast<QImage>(value);
+                const QListView *curView = qobject_cast<const QListView*>(v4->widget);
+                v4->icon = QIcon(QPixmap::fromImage(image));
+                v4->decorationSize = curView->iconSize();
+                break;
+            }
+            case QVariant::Pixmap: {
+                QPixmap pixmap = qvariant_cast<QPixmap>(value);
+                v4->icon = QIcon(pixmap);
+                v4->decorationSize = pixmap.size();
+                break;
+            }
+            default:
+                break;
+            }
+        }
+
+        value = index.data(Qt::DisplayRole);
+        if (value.isValid() && !value.isNull()) {
+            v4->features |= QStyleOptionViewItemV2::HasDisplay;
+            v4->text = displayText(value, v4->locale);
+        }
+
+        v4->backgroundBrush = qvariant_cast<QBrush>(index.data(Qt::BackgroundRole));
     }
-private:
-    DPImageGenerator* q;
-
-    friend class DPImageGenerator;
-};
-
-DPImageGenerator::DPImageGenerator()
-    : d(new DPImageGeneratorPrivate(this))
-{
-
-}
-
-DPImageGenerator::~DPImageGenerator()
-{
-    if (d) {
-        delete d;
-    }
-}
-
-QImage *DPImageGenerator::imageForindex(int index)
-{
-    Q_UNUSED(index);
-    return 0;
-}
-
-void DPImageGenerator::replyOnRequest(DPImageRequest request)
-{
-    QMutexLocker locker(&mutex);
-    d->replyOnRequest(request);
 }
 
 class DPImageServicerPrivate
@@ -675,21 +746,14 @@ class DPImageServicerPrivate
                 return;
             }
             if (curReq.isValid()) {
-//                mMutex.lock();
-                QImage *image = q->imageForindex(curReq.pageNo);
-//                mMutex.unlock();
-                if (image) {
-                    if (!image->isNull() && image->size() != QSize(curReq.w, curReq.h)) {
-                        QImage scaled = image->scaled(curReq.w, curReq.h, Qt::KeepAspectRatio, Globals::defTRansformationMode);
-                        delete image;
-                        image = new QImage(scaled);
-                    } else {
-                        delete image;
-                        image = 0;
-                    }
+                //                mMutex.lock();
+                QImage image = q->imageForindex(curReq.pageNo);
+                //                mMutex.unlock();
+                if (image.size() != QSize(curReq.w, curReq.h)) {
+                    image = image.scaled(curReq.w, curReq.h, Qt::KeepAspectRatio, Globals::defTRansformationMode);
                 }
 
-                emit q->sendReply(DPImageReply(image->width(), image->height(), curReq.pageNo, 0, image));
+                emit q->sendReply(DPImageReply(image.width(), image.height(), curReq.pageNo, 0, image));
             }
 
             mMutex.lock();
@@ -728,10 +792,10 @@ void DPImageServicer::addRequest(DPImageRequest req)
     d->addRequest(req);
 }
 
-QImage *DPImageServicer::imageForindex(int index) const
+QImage DPImageServicer::imageForindex(int index) const
 {
     Q_UNUSED(index);
-    return 0;
+    return QImage();
 }
 
 void DPImageServicer::run()

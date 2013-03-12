@@ -12,7 +12,7 @@ public:
     TstGenerator(QObject *parent = 0);
 
     qint64 imageCount() const;
-    QImage *imageForindex(int index) const;
+    QImage imageForindex(int index) const;
 
 };
 
