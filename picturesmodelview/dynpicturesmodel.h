@@ -22,7 +22,7 @@ struct DPImageRequest;
 struct DPImageReply;
 
 namespace Globals {
-    const int defaultCellSize = 150;
+    const int defaultCellSize = 80;
     const int maxCellSize = 200;
     const int pageRole = Qt::UserRole + 1;
     const Qt::TransformationMode defTRansformationMode = Qt::SmoothTransformation;
@@ -51,6 +51,9 @@ public:
     static QSize iconSize();
 
     static QString sizeToString(const QSize &pSize);
+
+signals:
+    void requestCleanImageServicerQueue();
 
 private slots:
     void cleanMemory();
@@ -194,6 +197,7 @@ signals:
 
 private slots:
     void replyOnRequest(DPImageRequest request);
+    void replyCleanImageServicerQueue();
 
 private:
     DPImageServicerPrivate *d;

@@ -167,6 +167,7 @@ public:
                 QObject::connect(view, SIGNAL(sendRequest(DPImageRequest)), mGeneratorThread, SLOT(replyOnRequest(DPImageRequest)));
             }
             QObject::connect(mGeneratorThread, SIGNAL(sendReply(DPImageReply)), mModel, SLOT(reactOnImageReply(DPImageReply)));
+            QObject::connect(q, SIGNAL(requestCleanImageServicerQueue()), mGeneratorThread, SLOT(replyCleanImageServicerQueue()));
 
             mGeneratorThread->start(QThread::LowPriority);
         }
@@ -196,6 +197,7 @@ public:
         slider->setMinimum(Globals::defaultCellSize);
         slider->setMaximum(Globals::maxCellSize);
         QObject::connect(slider, SIGNAL(valueChanged(int)), mMainView, SLOT(setNewGridSize(int)));
+        slider->setValue(150);
         sliderLayout->addWidget(slider);
 
         mainLayer->addLayout(widgetsLayout);
@@ -280,33 +282,97 @@ QString DynPicturesManager::sizeToString(const QSize &pSize)
     return QString("%1x%2").arg(pSize.width()).arg(pSize.height());
 }
 
-void DynPicturesManager::cleanMemory()
-{
 
-    QTime currentTime = QTime::currentTime();
+namespace Utils {
+class spanUnionHandler {
+    struct Span {
+        Span(int pmin, int pmax)
+            : min(pmin), max(pmax)
+        {;}
+        Span() : min(-1), max(-1) {;}
 
-    foreach (DPListView *view, d->mRegisteredViews) {
-        QVector<QModelIndex> cachIndexes(view->cachedIndexes());
-        int min = cachIndexes.first().row();
-        int max = cachIndexes.last().row();
+        bool contains(int pValue)
+        {
+            return (pValue >= min) && (pValue <= max);
+        }
 
-        for (int i = 0; i < d->pageList.count(); i++) {
-            if (i < min || i > max) {
-                Page *curPage = d->pageList.at(i);
-                delete curPage->pix;
-                curPage->pix = 0;
+        operator bool() {return min < 0 || max < 0;} //only positive and equal to zero values allowed
+
+        int min;
+        int max;
+    };
+
+public:
+
+    void addSpan(Span pSpan)
+    {
+        int pMin = pSpan.min;
+        int pMax = pSpan.max;
+
+        Span expandingSpan;
+        Span firstAbsorbedSpan;
+        int fstAbsorbedSpanIndex = -1;
+        for (int i = 0; i < mUnion.count(); i++) {
+            Span uSpan = mUnion.at(i);
+            if (pMin <= uSpan.min) { //starting in free space before min of current span
+                if (pMax < uSpan.min) { //the span finishes before current one starts
+                    mUnion.insert(i, pSpan);
+                    break;
+                } else if (pMax == uSpan.min || pMax <= uSpan.max) { //expanding current span to left
+                    uSpan.min = pSpan.min;
+                    break;
+                } else {
+                    firstAbsorbedSpan = uSpan;
+                    firstAbsorbedSpan.min = pSpan.min;
+                    fstAbsorbedSpanIndex = i;
+                }
+            } else {
+                if (fstAbsorbedSpanIndex != -1) {
+                    if (uSpan.contains(uSpan.max)) {
+                        break; //do nothing: the given span is absorbed by the current
+                    } else {
+                        firstAbsorbedSpan = uSpan;
+                        fstAbsorbedSpanIndex = i;
+                    }
+                } else {
+
+                }
+
             }
         }
     }
 
-//    QPixmapCache::clear();
+private:
+    QList<Span> mUnion;
+
+};
+} //namespace Utils
+
+void DynPicturesManager::cleanMemory()
+{
+
+    QTime currentTime = QTime::currentTime();
+    emit requestCleanImageServicerQueue();
+
+    QList<QPair<int, int> > listInterval;
+    foreach (DPListView *view, d->mRegisteredViews) {
+        QVector<QModelIndex> cachIndexes(view->cachedIndexes());
+        int min = cachIndexes.first().row();
+        int max = cachIndexes.last().row();
+        listInterval.append(QPair(min, max));
+    }
+
+    for (int i = 0; i < d->pageList.count(); i++) {
+        foreach (QPair curPair, listInterval) {
+
+            Page *curPage = d->pageList.at(i);
+            delete curPage->pix;
+            curPage->pix = 0;
+        }
+    }
+
+    QPixmapCache::clear();
     qDebug() << "Cleaning memory finished. Elapsed time" << currentTime.msecsTo(QTime::currentTime());
-    //    foreach (Page *pg, d->pageList) {
-    //        if (pg->pix) {
-    //            delete pg->pix;
-    //            pg->pix = 0;
-    //        }
-    //    }
 }
 
 void DynPicturesManager::startCleaningTimer()
@@ -806,6 +872,12 @@ void DPImageServicer::run()
 void DPImageServicer::replyOnRequest(DPImageRequest request)
 {
     addRequest(request);
+}
+
+void DPImageServicer::replyCleanImageServicerQueue()
+{
+    QMutexLocker(&d->mMutex);
+    d->requests.clear();
 }
 
 //#include "dynpicturesmodel.moc" //add include if going to implement QObject subclasses
