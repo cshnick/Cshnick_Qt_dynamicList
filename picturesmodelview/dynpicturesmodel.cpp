@@ -46,6 +46,7 @@ public:
         , mGeneratorThread(0)
         , mCentralWidget(0)
         , mCleaningMemTimer(0)
+        , mBlockCleanerTimer(false)
     {
         mModel = new DPListModel(&pageList);
         mDelegate = new DPItemDelegate();
@@ -56,10 +57,18 @@ public:
         foreach (DPListView *view, mRegisteredViews) {
             view->setModel(mModel);
             view->setItemDelegate(mDelegate);
+
+            QObject::connect(view, SIGNAL(manipulateContentsStarted()), q, SLOT(pauseCleaningTimer()));
+            QObject::connect(view, SIGNAL(manipulateContentsFinished()), q, SLOT(playCleaningTimer()));
+            QObject::connect(q, SIGNAL(sliderReleased()), view, SLOT(reactOnSliderReleased()));
+            QObject::connect(view, SIGNAL(iconSizeChanged(QSize)), q, SLOT(setMaxIconSize(QSize)));
         }
         mCleaningMemTimer = new QTimer();
         QObject::connect(mCleaningMemTimer, SIGNAL(timeout()), q, SLOT(cleanMemory()));
-        QTimer::singleShot(0, q, SLOT(startCleaningTimer()));
+        if (Globals::useMemoryCleaner) {
+            QTimer::singleShot(0, q, SLOT(startCleaningTimer()));
+            qDebug() << "Starting application using memory cleaner timer";
+        }
     }
 
     ~DynPicturesManagerlPrivate()
@@ -193,12 +202,15 @@ public:
         QPushButton *magicButton = new QPushButton("Don't push");
         QObject::connect(magicButton, SIGNAL(clicked()), q, SLOT(cleanMemory()));
         sliderLayout->addWidget(magicButton);
-        QSlider *slider = new QSlider(Qt::Horizontal);
-        slider->setMinimum(Globals::defaultCellSize);
-        slider->setMaximum(Globals::maxCellSize);
-        QObject::connect(slider, SIGNAL(valueChanged(int)), mMainView, SLOT(setNewGridSize(int)));
-        slider->setValue(150);
-        sliderLayout->addWidget(slider);
+        mSlider = new QSlider(Qt::Horizontal);
+        mSlider->setMinimum(Globals::defaultCellSize);
+        mSlider->setMaximum(Globals::maxCellSize);
+        mSlider->installEventFilter(q);
+
+        QObject::connect(mSlider, SIGNAL(valueChanged(int)), mMainView, SLOT(setNewGridSize(int)));
+
+        mSlider->setValue(150);
+        sliderLayout->addWidget(mSlider);
 
         mainLayer->addLayout(widgetsLayout);
         mainLayer->addLayout(sliderLayout);
@@ -208,23 +220,47 @@ public:
         mCentralWidget->setVisible(false);
     }
 
+    void setMaxIconSize(const QSize &pSz, DPListView *senderList)
+    {
+        qDebug() << "old icon size" << mMaxIconSize;
+        QSize newSz = pSz;
+        if (pSz.width() <= mMaxIconSize) {
+            foreach (DPListView *view, mRegisteredViews) {
+                if (view == senderList) {
+                    continue;
+                }
+                QSize currentSize = view->iconSize();
+                if (currentSize.width() >= pSz.width()) {
+                    return;
+                }
+            }
+        }
+
+        mMaxIconSize = newSz.width();
+        qDebug() << "new icon size" << mMaxIconSize;
+    }
+
 private:
     DynPicturesManager *q;
     QUrl storageUrl;
     QList<Page*> pageList;
     QList<DPListView*> mRegisteredViews;
+    QSlider *mSlider;
     DPListModel *mModel;
     DPItemDelegate *mDelegate;
     DynPicturesManager::EmptyPatterns emptyImagePatterns;
     DPImageServicer *mGeneratorThread;
     QWidget *mCentralWidget;
     QTimer *mCleaningMemTimer;
+    bool mBlockCleanerTimer;
 
     static int mCellSize;
+    static int mMaxIconSize;
 
     friend class DynPicturesManager;
 };
 int DynPicturesManagerlPrivate::mCellSize = Globals::defaultCellSize;
+int DynPicturesManagerlPrivate::mMaxIconSize = Globals::defaultCellSize;
 
 DynPicturesManager::DynPicturesManager(const QUrl &dataUrl, QObject *parent)
     :QObject(parent)
@@ -274,7 +310,17 @@ QSize DynPicturesManager::gridSize()
 
 QSize DynPicturesManager::iconSize()
 {
-    return QSize(DynPicturesManagerlPrivate::mCellSize - 35, DynPicturesManagerlPrivate::mCellSize - 35);
+    return iconSizeFromGridSize(gridSize());
+}
+
+QSize DynPicturesManager::iconSizeFromGridSize(const QSize &gridSize)
+{
+    return gridSize - QSize(40, 40);
+}
+
+int DynPicturesManager::maxIconSize()
+{
+    return DynPicturesManagerlPrivate::mMaxIconSize;
 }
 
 QString DynPicturesManager::sizeToString(const QSize &pSize)
@@ -282,12 +328,23 @@ QString DynPicturesManager::sizeToString(const QSize &pSize)
     return QString("%1x%2").arg(pSize.width()).arg(pSize.height());
 }
 
+bool DynPicturesManager::eventFilter(QObject *obj, QEvent *event)
+{
+    if (obj == d->mSlider && event->type() == QEvent::MouseButtonRelease) {
+        emit sliderReleased();
+    }
+
+    return QObject::eventFilter(obj, event);
+}
+
 
 namespace Utils {
-class spanUnionHandler {
+class SpanUnionHandler {
+public:
+
     struct Span {
         Span(int pmin, int pmax)
-            : min(pmin), max(pmax)
+            : min(qMin(pmin, pmax)), max(qMax(pmin, pmax))
         {;}
         Span() : min(-1), max(-1) {;}
 
@@ -302,70 +359,137 @@ class spanUnionHandler {
         int max;
     };
 
-public:
+
+    typedef QList<Span> SpanList;
+    typedef SpanList::Iterator Iterator;
+
+    void print()
+    {
+        for (int i = 0; i < mUnion.count(); i++) {
+            Span nextSpan = mUnion.at(i);
+            qDebug() << "Span" << i << "{" << nextSpan.min << nextSpan.max << "}";
+        }
+
+    }
+    bool contains(int index)
+    {
+        foreach (Span nextSpan, mUnion) {
+            if (nextSpan.contains(index)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+
 
     void addSpan(Span pSpan)
     {
-        int pMin = pSpan.min;
-        int pMax = pSpan.max;
+        if (mUnion.isEmpty()) {
+            mUnion.append(pSpan);
+        } else {
+            processNext(pSpan, 0);
+        }
+    }
 
-        Span expandingSpan;
-        Span firstAbsorbedSpan;
-        int fstAbsorbedSpanIndex = -1;
-        for (int i = 0; i < mUnion.count(); i++) {
-            Span uSpan = mUnion.at(i);
-            if (pMin <= uSpan.min) { //starting in free space before min of current span
-                if (pMax < uSpan.min) { //the span finishes before current one starts
-                    mUnion.insert(i, pSpan);
-                    break;
-                } else if (pMax == uSpan.min || pMax <= uSpan.max) { //expanding current span to left
-                    uSpan.min = pSpan.min;
-                    break;
+private:
+
+    void processNext(Span candidate, uint index)
+    {
+        Span &nextSpan = mUnion[index];
+        if (candidate.min < nextSpan.min) {
+            if (candidate.max < nextSpan.min) { //Span starts and ends before the current span within the union
+                mUnion.insert(index, candidate);
+                return;
+            } else if (nextSpan.contains(candidate.max)) { //Starts before and ends within the current span of the union
+                nextSpan.min = candidate.min;
+                return;
+            } else { //Span starts before and ends after the current span
+                mUnion.removeAt(index);
+                if (index == static_cast<uint>(mUnion.size())) {
+                    mUnion.append(candidate); //no more indecies left
                 } else {
-                    firstAbsorbedSpan = uSpan;
-                    firstAbsorbedSpan.min = pSpan.min;
-                    fstAbsorbedSpanIndex = i;
+                    processNextExpanding(candidate, index);
                 }
+                return;
+            }
+        } else if (nextSpan.contains(candidate.min)) {
+            if (nextSpan.contains(candidate.max)) {//Span origin lies within the current span and ends there
+                return;
+            } else { //Span origin lies within the current span and ends outside it
+                candidate.min = nextSpan.min;
+                mUnion.removeAt(index);
+                if (index == static_cast<uint>(mUnion.size())) {
+                    mUnion.append(candidate); //no more indecies left
+                } else {
+                    processNextExpanding(candidate, index);
+                }
+                return;
+            }
+        }
+
+        if (++index < static_cast<uint>(mUnion.size())) { //There is at least one next Span in union
+            processNext(candidate, index);
+        } else { //no more indecies left
+            mUnion.append(candidate);
+        }
+    }
+
+    void processNextExpanding(Span candidate, uint index)
+    {
+        Span &nextSpan = mUnion[index];
+        if (candidate.max < nextSpan.min) { //candidate ends before current span origin
+            mUnion.insert(index, candidate);
+        } else if (nextSpan.contains(candidate.max)) { //candidate ends within the current span
+            nextSpan.min = candidate.min;
+        } else { //current span is overlapped by candidate
+            mUnion.removeAt(index);
+            if (index == static_cast<uint>(mUnion.size())) {
+                mUnion.append(candidate); //no more indecies left
             } else {
-                if (fstAbsorbedSpanIndex != -1) {
-                    if (uSpan.contains(uSpan.max)) {
-                        break; //do nothing: the given span is absorbed by the current
-                    } else {
-                        firstAbsorbedSpan = uSpan;
-                        fstAbsorbedSpanIndex = i;
-                    }
-                } else {
-
-                }
-
+                processNextExpanding(candidate, index);
             }
         }
     }
 
 private:
-    QList<Span> mUnion;
+    SpanList mUnion;
 
 };
 } //namespace Utils
 
 void DynPicturesManager::cleanMemory()
 {
+    if (d->mBlockCleanerTimer) {
+        return;
+    }
 
     QTime currentTime = QTime::currentTime();
     emit requestCleanImageServicerQueue();
 
-    QList<QPair<int, int> > listInterval;
+    Utils::SpanUnionHandler spHandler;
+    bool viewsAreHidden = true;
     foreach (DPListView *view, d->mRegisteredViews) {
-        QVector<QModelIndex> cachIndexes(view->cachedIndexes());
-        int min = cachIndexes.first().row();
-        int max = cachIndexes.last().row();
-        listInterval.append(QPair(min, max));
+        if (view->isVisible()) {
+            QVector<QModelIndex> cachIndexes(view->cachedIndexes());
+            spHandler.addSpan(Utils::SpanUnionHandler::Span(cachIndexes.first().row(), cachIndexes.last().row()));
+            qDebug() << "first" << cachIndexes.first().row() << "last" << cachIndexes.last().row();
+            viewsAreHidden = false;
+        }
     }
 
-    for (int i = 0; i < d->pageList.count(); i++) {
-        foreach (QPair curPair, listInterval) {
+    if (viewsAreHidden) {
+        return;
+    }
 
-            Page *curPage = d->pageList.at(i);
+    spHandler.print();
+
+    int counter = 0;
+    for (int i = 0; i < d->pageList.count(); i++) {
+        Page *curPage = d->pageList.at(i);
+        if (curPage->pix && !spHandler.contains(i)) {
+            counter++;
             delete curPage->pix;
             curPage->pix = 0;
         }
@@ -373,13 +497,31 @@ void DynPicturesManager::cleanMemory()
 
     QPixmapCache::clear();
     qDebug() << "Cleaning memory finished. Elapsed time" << currentTime.msecsTo(QTime::currentTime());
+    qDebug() << "alive objects" << counter;
 }
 
 void DynPicturesManager::startCleaningTimer()
 {
-//    if (d->mCleaningMemTimer) {
-//        d->mCleaningMemTimer->start(Globals::cleanerTimerInterval);
-//    }
+    if (d->mCleaningMemTimer) {
+        d->mCleaningMemTimer->start(Globals::cleanerTimerInterval);
+    }
+}
+
+void DynPicturesManager::pauseCleaningTimer()
+{
+    d->mBlockCleanerTimer = true;
+}
+
+void DynPicturesManager::playCleaningTimer()
+{
+    d->mBlockCleanerTimer = false;
+}
+
+void DynPicturesManager::setMaxIconSize(const QSize &pSz) {
+    DPListView *senderList = qobject_cast<DPListView*>(sender());
+    if (senderList) {
+        d->setMaxIconSize(pSz, senderList);
+    }
 }
 
 class DPListModelPrivate
@@ -458,12 +600,11 @@ QVariant DPListModel::data(const QModelIndex &index, int role) const
         QImage *&curPix = d->pageList->at(index.row())->pix;
 
         if (curPix) {
-//            return QIcon(QPixmap::fromImage(*curPix));
             return *curPix;
         } else {
             return 0;
         }
-//        return 0;
+
         break;
     }
 
@@ -596,8 +737,12 @@ DPListView::eAdditionalFlags DPListView::additionalFlags()
 void DPListView::resizeEvent(QResizeEvent *e)
 {
     if (mAdditionalFlags & fAutoExpanding) {
-        setGridSize(QSize(width() - 30, width() - 30));
-        setIconSize(gridSize() - QSize(30, 30));
+        QSize newGridSize = QSize(width() - 25, width() - 25);
+        setGridSize(newGridSize);
+        QSize newIconSz = DynPicturesManager::iconSizeFromGridSize(newGridSize);
+        setIconSize(newIconSz);
+
+        emit iconSizeChanged(newIconSz);
     }
     updateEmptyPagesData();
     QListView::resizeEvent(e);
@@ -614,10 +759,17 @@ void DPListView::scrollContentsBy(int dx, int dy)
 
 void DPListView::setNewGridSize(int newSize)
 {
-    DynPicturesManager::setCellSize(newSize);
-    setGridSize(DynPicturesManager::gridSize());
-    setIconSize(DynPicturesManager::iconSize());
-//    qDebug() << "scroller value" << newSize;
+    QSize gridSz = QSize(newSize, newSize);
+    setGridSize(gridSz);
+    QSize iconSz = DynPicturesManager::iconSizeFromGridSize(gridSz);
+    setIconSize(iconSz);
+
+    emit iconSizeChanged(iconSz);
+}
+
+void DPListView::reactOnSliderReleased()
+{
+    updateEmptyPagesData();
 }
 
 QListViewPrivate* DPListView::privPtr()
@@ -627,6 +779,8 @@ QListViewPrivate* DPListView::privPtr()
 
 void DPListView::updateEmptyPagesData()
 {
+    emit manipulateContentsStarted();
+
     QTime currentTime = QTime::currentTime();
     QVector<QModelIndex>visibleIndexesVector(visibleInArea(viewport()->geometry()));
     if (!visibleIndexesVector.count()) {
@@ -680,6 +834,7 @@ void DPListView::updateEmptyPagesData()
 
     qDebug() << "sendRequest time " << currentTime.msecsTo(QTime::currentTime());
 
+    emit manipulateContentsFinished();
 }
 
 DPItemDelegate::DPItemDelegate(QObject *parent)

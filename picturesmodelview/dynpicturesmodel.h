@@ -23,12 +23,13 @@ struct DPImageReply;
 
 namespace Globals {
     const int defaultCellSize = 80;
-    const int maxCellSize = 200;
+    const int maxCellSize = 250;
     const int pageRole = Qt::UserRole + 1;
     const Qt::TransformationMode defTRansformationMode = Qt::SmoothTransformation;
-    const int cleanerTimerInterval = 10000; //5 seconds
+    const int cleanerTimerInterval = 10000; //10 seconds
     const int saveMemoryMultipler = 1; //Allways save current viewport and cache indexes above and under the visible area;
                                        //save visible QModelIndex count * saveMemoryMultipler on top and on the bottom
+    const bool useMemoryCleaner = true;
 }
 
 class PICTURESMODELVIEWSHARED_EXPORT DynPicturesManager : public QObject
@@ -49,15 +50,24 @@ public:
     static void setCellSize(int newSize);
     static QSize gridSize();
     static QSize iconSize();
+    static QSize iconSizeFromGridSize(const QSize &gridSize);
+    static int maxIconSize();
 
     static QString sizeToString(const QSize &pSize);
 
+protected:
+    bool eventFilter(QObject *, QEvent *);
+
 signals:
     void requestCleanImageServicerQueue();
+    void sliderReleased();
 
 private slots:
     void cleanMemory();
     void startCleaningTimer();
+    void pauseCleaningTimer();
+    void playCleaningTimer();
+    void setMaxIconSize(const QSize &pSz);
 
 private:
     DynPicturesManagerlPrivate* d;
@@ -114,9 +124,13 @@ protected:
 
 signals:
     void sendRequest(DPImageRequest pRequest);
+    void manipulateContentsStarted();
+    void manipulateContentsFinished();
+    void iconSizeChanged(const QSize &newSize);
 
 private slots:
     void setNewGridSize(int newSize);
+    void reactOnSliderReleased();
 
 private:
     QListViewPrivate *privPtr();
