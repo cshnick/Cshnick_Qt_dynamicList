@@ -99,11 +99,8 @@ public:
         qint64 pageCount = mGeneratorThread->imageCount();
         QTime currentTime = QTime::currentTime();
         for (int i = 0; i < pageCount; i++) {
-            Page *curPage = new Page(QUrl());
-//            if (i < 100) {
-//                curPage->setImage(mGenerator->imageForindex(i));
-//            }
-            pageList.append(curPage);
+                Page *curPage = new Page(QUrl());
+                pageList.append(curPage);
         }
         qDebug() << "creation time " << currentTime.msecsTo(QTime::currentTime());
     }
@@ -193,9 +190,11 @@ public:
         mCentralWidget = new QWidget();
         QVBoxLayout *mainLayer = new QVBoxLayout();
 
-        QHBoxLayout *widgetsLayout = new QHBoxLayout();
-        widgetsLayout->addWidget(mThumbView);
-        widgetsLayout->addWidget(mMainView, 1);
+        QSplitter *widgetsSplitter = new QSplitter(Qt::Horizontal);
+        widgetsSplitter->addWidget(mThumbView);
+        widgetsSplitter->addWidget(mMainView);
+        widgetsSplitter->setStretchFactor(0, 0);
+        widgetsSplitter->setStretchFactor(1, 1);
 
         QHBoxLayout *sliderLayout = new QHBoxLayout();
         sliderLayout->addSpacerItem(new QSpacerItem(300, 0, QSizePolicy::Expanding));
@@ -212,7 +211,7 @@ public:
         mSlider->setValue(150);
         sliderLayout->addWidget(mSlider);
 
-        mainLayer->addLayout(widgetsLayout);
+        mainLayer->addWidget(widgetsSplitter);
         mainLayer->addLayout(sliderLayout);
 
         mCentralWidget->setLayout(mainLayer);
@@ -845,8 +844,25 @@ DPItemDelegate::DPItemDelegate(QObject *parent)
 
 void DPItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
-    QStyledItemDelegate::paint(painter, option, index);
+    Q_ASSERT(index.isValid());
+
+    QStyleOptionViewItemV4 opt = option;
+    initStyleOption(&opt, index);
+
+    const QWidget *widget = opt.widget;
+    QStyle *style = widget ? widget->style() : QApplication::style();
+    style->drawControl(QStyle::CE_ItemViewItem, &opt, painter, widget);
+
+    painter->save();
+    painter->setRenderHints(QPainter::Antialiasing);
+
+    painter->setPen(0xAAAAAA);
+    painter->drawRoundRect(option.rect, 15, 15);
+
+    painter->restore();
 }
+
+
 
 void DPItemDelegate::initStyleOption(QStyleOptionViewItem *option, const QModelIndex &index) const
 {
@@ -959,8 +975,14 @@ class DPImageServicerPrivate
     void run()
     {
         forever {
+            DPImageRequest curReq;
             mMutex.lock();
-            DPImageRequest curReq = requests.isEmpty() ? DPImageRequest() : requests.takeFirst();
+            if (requests.isEmpty()) {
+                curReq = DPImageRequest();
+            } else {
+                curReq = requests.at(0);
+                requests.remove(0);
+            }
             mMutex.unlock();
 
             if (abort) {
@@ -989,7 +1011,7 @@ private:
     QWaitCondition mCondition;
     bool abort;
     DPImageServicer *q;
-    QList<DPImageRequest> requests;
+    QVector<DPImageRequest> requests;
 
     friend class DPImageServicer;
 };
