@@ -121,6 +121,7 @@ public:
 protected:
     void resizeEvent(QResizeEvent *);
     void scrollContentsBy(int dx, int dy);
+    void showEvent(QShowEvent *pEvent);
 
 signals:
     void sendRequest(DPImageRequest pRequest);

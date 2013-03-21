@@ -741,6 +741,8 @@ void DPListView::resizeEvent(QResizeEvent *e)
         QSize newIconSz = DynPicturesManager::iconSizeFromGridSize(newGridSize);
         setIconSize(newIconSz);
 
+        qDebug() << "newSize is" << gridSize() << iconSize();
+
         emit iconSizeChanged(newIconSz);
     }
     updateEmptyPagesData();
@@ -754,6 +756,12 @@ void DPListView::scrollContentsBy(int dx, int dy)
         updateEmptyPagesData();
     }
     QListView::scrollContentsBy(dx, dy);
+}
+
+void DPListView::showEvent(QShowEvent *pEvent)
+{
+    updateEmptyPagesData();
+    QListView::showEvent(pEvent);
 }
 
 void DPListView::setNewGridSize(int newSize)
@@ -791,7 +799,8 @@ void DPListView::updateEmptyPagesData()
     int maxIndex = visibleIndexesVector.first().row();
     int requestWidth = gridSize().width() - 30;
     int requestHeight = gridSize().height() - 30;
-    foreach (QModelIndex index, visibleIndexesVector) {
+    for (int l = visibleIndexesVector.count() - 1; l >=0; l--) {
+        QModelIndex index = visibleIndexesVector.at(l);
         int indexRow = index.row();
         if (indexRow < minIndex) {
             minIndex = indexRow;
