@@ -27,7 +27,7 @@ namespace Globals {
     const int pageRole = Qt::UserRole + 1;
     const Qt::TransformationMode defTRansformationMode = Qt::SmoothTransformation;
     const int cleanerTimerInterval = 10000; //10 seconds
-    const int saveMemoryMultipler = 1; //Allways save current viewport and cache indexes above and under the visible area;
+    const int saveMemoryMultipler = 2; //Allways save current viewport and cache indexes above and under the visible area;
                                        //save visible QModelIndex count * saveMemoryMultipler on top and on the bottom
     const bool useMemoryCleaner = true;
 }
@@ -61,6 +61,7 @@ protected:
 signals:
     void requestCleanImageServicerQueue();
     void sliderReleased();
+    void memoryCleaned();
 
 private slots:
     void cleanMemory();
@@ -121,7 +122,6 @@ public:
 protected:
     void resizeEvent(QResizeEvent *);
     void scrollContentsBy(int dx, int dy);
-    void showEvent(QShowEvent *pEvent);
 
 signals:
     void sendRequest(DPImageRequest pRequest);

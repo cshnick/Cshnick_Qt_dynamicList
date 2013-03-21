@@ -61,6 +61,7 @@ public:
             QObject::connect(view, SIGNAL(manipulateContentsStarted()), q, SLOT(pauseCleaningTimer()));
             QObject::connect(view, SIGNAL(manipulateContentsFinished()), q, SLOT(playCleaningTimer()));
             QObject::connect(q, SIGNAL(sliderReleased()), view, SLOT(reactOnSliderReleased()));
+            QObject::connect(q, SIGNAL(memoryCleaned()), view, SLOT(reactOnSliderReleased()));
             QObject::connect(view, SIGNAL(iconSizeChanged(QSize)), q, SLOT(setMaxIconSize(QSize)));
         }
         mCleaningMemTimer = new QTimer();
@@ -497,6 +498,8 @@ void DynPicturesManager::cleanMemory()
     QPixmapCache::clear();
     qDebug() << "Cleaning memory finished. Elapsed time" << currentTime.msecsTo(QTime::currentTime());
     qDebug() << "alive objects" << counter;
+
+    emit memoryCleaned();
 }
 
 void DynPicturesManager::startCleaningTimer()
@@ -758,12 +761,6 @@ void DPListView::scrollContentsBy(int dx, int dy)
     QListView::scrollContentsBy(dx, dy);
 }
 
-void DPListView::showEvent(QShowEvent *pEvent)
-{
-    updateEmptyPagesData();
-    QListView::showEvent(pEvent);
-}
-
 void DPListView::setNewGridSize(int newSize)
 {
     QSize gridSz = QSize(newSize, newSize);
@@ -796,9 +793,33 @@ void DPListView::updateEmptyPagesData()
 
     int numIndexes = visibleIndexesVector.count();
     int minIndex = visibleIndexesVector.first().row();
-    int maxIndex = visibleIndexesVector.first().row();
+    int maxIndex = visibleIndexesVector.last().row();
     int requestWidth = gridSize().width() - 30;
     int requestHeight = gridSize().height() - 30;
+
+    int numIndexesToCache = numIndexes * Globals::saveMemoryMultipler;
+    //caching rect above the visible
+    int startIndex = qMax(0, minIndex - numIndexesToCache);
+    for (int i = startIndex; i < minIndex; i++) {
+        Page *curPage = model()->index(i, 0).data(Globals::pageRole).value<Page*>();
+        QImage *curPix = curPage->pix;
+        if (!curPix || requestWidth > curPix->width() || requestHeight > curPix->height()) {
+            DPImageRequest request(requestWidth, requestHeight, i, 0);
+            emit sendRequest(request);
+        }
+    }
+
+    //caching rect under the visible
+    int endIndex = qMin(model()->rowCount() - 1, maxIndex + numIndexesToCache);
+    for (int i = endIndex; i > maxIndex; i--) {
+        Page *curPage = model()->index(i, 0).data(Globals::pageRole).value<Page*>();
+        QImage *curPix = curPage->pix;
+        if (!curPix || requestWidth > curPix->width() || requestHeight > curPix->height()) {
+            DPImageRequest request(requestWidth, requestHeight, i, 0);
+            emit sendRequest(request);
+        }
+    }
+
     for (int l = visibleIndexesVector.count() - 1; l >=0; l--) {
         QModelIndex index = visibleIndexesVector.at(l);
         int indexRow = index.row();
@@ -814,27 +835,7 @@ void DPListView::updateEmptyPagesData()
             emit sendRequest(request);
         }
     }
-    int numIndexesToCache = numIndexes * Globals::saveMemoryMultipler;
-    //caching rect above the visible
-    int startIndex = qMax(0, minIndex - numIndexesToCache);
-    for (int i = startIndex; i < minIndex; i++) {
-        Page *curPage = model()->index(i, 0).data(Globals::pageRole).value<Page*>();
-        QImage *curPix = curPage->pix;
-        if (!curPix || requestWidth > curPix->width() || requestHeight > curPix->height()) {
-            DPImageRequest request(requestWidth, requestHeight, i, 0, DPImageRequest::veryLow);
-            emit sendRequest(request);
-        }
-    }
-    //caching rect under the visible
-    int endIndex = qMin(model()->rowCount() - 1, maxIndex + numIndexesToCache);
-    for (int i = maxIndex + 1; i <= endIndex; i++) {
-        Page *curPage = model()->index(i, 0).data(Globals::pageRole).value<Page*>();
-        QImage *curPix = curPage->pix;
-        if (!curPix || requestWidth > curPix->width() || requestHeight > curPix->height()) {
-            DPImageRequest request(requestWidth, requestHeight, i, 0, DPImageRequest::veryLow);
-            emit sendRequest(request);
-        }
-    }
+
     qDebug() << "numIndexes" << numIndexes << "numIndexesToCache" << numIndexesToCache
              << "start above cache from" << startIndex << "endCache with" << minIndex << endl
              << "visible index from " << minIndex << "to" << maxIndex << endl
