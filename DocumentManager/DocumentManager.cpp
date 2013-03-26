@@ -13,8 +13,27 @@ class DocumentManagerPrivate
 public:
     DocumentManagerPrivate(DocumentManager *pq)
         : q(pq)
+
     {
-//        mExplorerModel = new ExplorerModel();
+        mExplorerModel = new ExplorerModel();
+        mExplorerView = new ExplorerView();
+        mExplorerView->setModel(mExplorerModel);
+    }
+    ~DocumentManagerPrivate()
+    {
+        if (mExplorerView) {
+            delete mExplorerView;
+        }
+        if (mExplorerModel) {
+            delete mExplorerModel;
+        }
+    }
+    void registerGenerator(DocumentGenerator *pGenerator) {
+        if (mRegisteredGenerators.contains(pGenerator)) {
+            return;
+        }
+        mRegisteredGenerators.append(pGenerator);
+        mExplorerModel->registerGenerator(pGenerator);
     }
 
 private:
@@ -23,7 +42,6 @@ private:
     QList<DocumentGenerator *> mRegisteredGenerators;
     ExplorerModel *mExplorerModel;
     ExplorerView *mExplorerView;
-
 
     friend class DocumentManager;
 };
@@ -44,15 +62,19 @@ DocumentManager::~DocumentManager()
 
 void DocumentManager::registerGenerator(DocumentGenerator *pGenerator)
 {
-    if (d->mRegisteredGenerators.contains(pGenerator)) {
-        return;
-    }
-    d->mRegisteredGenerators.append(pGenerator);
+    d->registerGenerator(pGenerator);
 }
 
 void DocumentManager::print()
 {
     qDebug() << "DocumentmManager print";
+}
+
+void DocumentManager::setVisible (bool pVisible)
+{
+    if (d->mExplorerView) {
+        d->mExplorerView->setVisible(pVisible);
+    }
 }
 
 DocumentGenerator::DocumentGenerator(QObject *parent)
@@ -63,11 +85,6 @@ DocumentGenerator::DocumentGenerator(QObject *parent)
 DocumentGenerator::~DocumentGenerator()
 {
 
-}
-
-QIcon DocumentGenerator::visibleIcon() const
-{
-    return QIcon();
 }
 
 void DocumentGenerator::createNodeTree()

@@ -2,14 +2,16 @@
 #define EXPLORERMODEL_H
 
 #include "DocumentManager_global.h"
-
-#include <QAbstractItemModel>
+#include <QtGui>
 
 namespace Docs {
 
 class ExplorerModelPrivate;
 class Node;
 class CatalogNode;
+class DocumentGenerator;
+
+
 
 class DOCUMENTMANAGERSHARED_EXPORT ExplorerModel : public QAbstractItemModel
 {
@@ -25,18 +27,20 @@ public:
     int rowCount(const QModelIndex &parent) const;
     int columnCount(const QModelIndex &parent) const;
     QVariant data(const QModelIndex &index, int role) const;
-    bool setData(const QModelIndex &index, const QVariant &value, int role);
-    Qt::ItemFlags flags ( const QModelIndex & index ) const;
-    Qt::DropActions supportedDropActions() const {return Qt::MoveAction | Qt::CopyAction;}
-    QStringList mimeTypes() const;
-    QMimeData *mimeData (const QModelIndexList &indexes) const;
-    bool dropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column, const QModelIndex &parent);
-    bool removeRows(int row, int count, const QModelIndex &parent);
+
+////    bool setData(const QModelIndex &index, const QVariant &value, int role);
+//    Qt::ItemFlags flags ( const QModelIndex & index ) const;
+//    Qt::DropActions supportedDropActions() const {return Qt::MoveAction | Qt::CopyAction;}
+//    QStringList mimeTypes() const;
+//    QMimeData *mimeData (const QModelIndexList &indexes) const;
+//    bool dropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column, const QModelIndex &parent);
+//    bool removeRows(int row, int count, const QModelIndex &parent);
 
 //    QModelIndex indexForNode(UBDocumentTreeNode *pNode) const;
 //    QPersistentModelIndex persistentIndexForNode(UBDocumentTreeNode *pNode);
 
     Node *nodeFromIndex(const QModelIndex &pIndex) const;
+    void registerGenerator(DocumentGenerator *pGenerator);
     
 private:
     ExplorerModelPrivate *d;

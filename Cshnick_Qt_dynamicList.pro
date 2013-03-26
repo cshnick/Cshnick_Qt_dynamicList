@@ -5,6 +5,8 @@ SUBDIRS += \
     picturesmodelview \
     TstGenerator \
     DocumentManager \
+    TstDocGenerator1 \
     bin
+
 
 

@@ -1,6 +1,14 @@
 #include "ExplorerModel.h"
 
+//#include <QFont>
+//#include <QBrush>
+#include <QtGui>
+
 #include "Node.h"
+
+
+//#include <QObject>
+
 
 namespace Docs {
 
@@ -10,6 +18,7 @@ public:
     ExplorerModelPrivate(ExplorerModel *pq)
         : q(pq)
     {
+        mRootNode = new RootNode();
     }
     ~ExplorerModelPrivate()
     {
@@ -23,17 +32,17 @@ public:
             return QModelIndex();
         }
 
-        CatalogNode *nodeParent = qobject_cast<CatalogNode*>(nodeFromIndex(parent));
+        CatalogNode *nodeParent = catalogNodeFromIndex(parent);
         if (!nodeParent || row > nodeParent->children().count() - 1) {
             return QModelIndex();
         }
 
-        Node *requiredNode = nodeParent->children().at(row);
+        Node *requiredNode = nodeParent->childrenNodes().at(row);
         if(!requiredNode) {
             return QModelIndex();
         }
 
-        QModelIndex resIndex = createIndex(row, column, requiredNode);
+        QModelIndex resIndex = q->createIndex(row, column, requiredNode);
 
         return resIndex;
     }
@@ -55,11 +64,31 @@ public:
             return QModelIndex();
         }
 
-        int row = nodePreParent->children().indexOf(nodeParent);
+        int row = nodePreParent->childrenNodes().indexOf(nodeParent);
 
-        QModelIndex resIndex = createIndex(row, 0, nodeParent);
+        QModelIndex resIndex = q->createIndex(row, 0, nodeParent);
 
         return resIndex;
+    }
+
+    int rowCount(const QModelIndex &parent) const
+    {
+        if (parent.column() > 0) {
+            return 0;
+        }
+
+        CatalogNode *nodeParent = catalogNodeFromIndex(parent);
+        if (!nodeParent) {
+            return 0;
+        }
+
+        return nodeParent->children().count();
+    }
+
+    int columnCount(const QModelIndex &parent) const
+    {
+        Q_UNUSED(parent)
+        return 1;
     }
 
     Node *nodeFromIndex(const QModelIndex &pIndex) const
@@ -71,11 +100,23 @@ public:
         }
     }
 
+    CatalogNode *catalogNodeFromIndex(const QModelIndex &pIndex) const
+    {
+        if (pIndex.isValid()) {
+            return static_cast<CatalogNode*>(pIndex.internalPointer());
+        } else {
+            return mRootNode;
+        }
+    }
+
 private:
     ExplorerModel *q;
-    CatalogNode *mRootNode;
+    RootNode *mRootNode;
+    QList<DocumentGenerator *> mRegisteredGenerators;
+
 
     friend class ExplorerModel;
+    friend class DocumentManagerPrivate;
 };
 
 ExplorerModel::ExplorerModel(QObject *parent) :
@@ -95,23 +136,85 @@ QModelIndex ExplorerModel::index(int row, int column, const QModelIndex &parent)
 {
     return d->index(row, column, parent);
 }
-
 QModelIndex ExplorerModel::parent(const QModelIndex &child) const
 {
-      return d->parent(child);
+    return d->parent(child);
 }
+int ExplorerModel::rowCount(const QModelIndex &parent) const
+{
+    return d->rowCount(parent);
+}
+int ExplorerModel::columnCount(const QModelIndex &parent) const
+{
+    return d->columnCount(parent);
+}
+QVariant ExplorerModel::data(const QModelIndex &index, int role) const
+{
+    if (!index.isValid()) {
+        return QVariant();
+    }
 
+    Node *dataNode = d->nodeFromIndex(index);
+    if (!dataNode)
+        return QVariant();
+
+    if (index.column() == 0) {
+
+        switch (role) {
+        case (Qt::DecorationRole) :
+            return dataNode->displayIcon();
+            break;
+
+        case (Qt::DisplayRole) :
+            return dataNode->displayName();
+            break;
+
+        case (Qt::UserRole +1):
+            return QVariant::fromValue(dataNode);
+            break;
+
+        case (Qt::FontRole) :
+            if (dataNode->displayFont() != QFont()) {
+                dataNode->displayFont();
+            }
+            break;
+
+        case (Qt::ForegroundRole) :
+            if (dataNode->backgroundColor().style() != Qt::NoBrush) {
+                return dataNode->backgroundColor();
+            }
+            break;
+
+        case (Qt::BackgroundRole) :
+            if (dataNode->foregroundColor() != Qt::NoBrush) {
+                return dataNode->foregroundColor();
+            }
+            break;
+
+        default:
+//            return QAbstractItemModel::data(index, role);
+            break;
+        }
+    }
+
+    return QVariant();
+}
 Node *ExplorerModel::nodeFromIndex(const QModelIndex &pIndex) const
 {
-    return d->nodeFromIndex(index);
+    return d->nodeFromIndex(pIndex);
+}
+
+void ExplorerModel::registerGenerator(DocumentGenerator *pGenerator)
+{
+    beginResetModel();
+    d->mRegisteredGenerators.append(pGenerator);
+    d->mRootNode->addChild(pGenerator->rootNode());
+
+    endResetModel();
 }
 
 
 } //namespace Docs
-
-
-
-
 
 
 
@@ -143,138 +246,6 @@ Node *ExplorerModel::nodeFromIndex(const QModelIndex &pIndex) const
 //    mModels =  index(1, 0, QModelIndex());
 //    mTrash =  index(2, 0, QModelIndex());
 //    mUntitledDocuments = index(0, 0, mMyDocuments);
-//}
-
-//QModelIndex UBDocumentTreeModel::index(int row, int column, const QModelIndex &parent) const
-//{
-//    if (!mRootNode || row < 0 || column < 0) {
-//        return QModelIndex();
-//    }
-
-//    UBDocumentTreeNode *nodeParent = nodeFromIndex(parent);
-//    if (!nodeParent || row > nodeParent->children().count() - 1) {
-//        return QModelIndex();
-//    }
-
-//    UBDocumentTreeNode *requiredNode = nodeParent->children().at(row);
-//    if(!requiredNode) {
-//        return QModelIndex();
-//    }
-
-//    QModelIndex resIndex = createIndex(row, column, requiredNode);
-
-//    return resIndex;
-//}
-
-//QModelIndex UBDocumentTreeModel::parent(const QModelIndex &child) const
-//{
-//    UBDocumentTreeNode *nodeChild = nodeFromIndex(child);
-//    if (!nodeChild) {
-//        return QModelIndex();
-//    }
-
-//    UBDocumentTreeNode *nodeParent = nodeChild->parentNode();
-//    if (!nodeParent) {
-//        return QModelIndex();
-//    }
-
-//    UBDocumentTreeNode *nodePreParent = nodeParent->parentNode();
-//    if (!nodePreParent) {
-//        return QModelIndex();
-//    }
-
-//    int row = nodePreParent->children().indexOf(nodeParent);
-
-//    QModelIndex resIndex = createIndex(row, 0, nodeParent);
-
-//    return resIndex;
-//}
-
-//int UBDocumentTreeModel::rowCount(const QModelIndex &parent) const
-//{
-//    if (parent.column() > 0) {
-//        return 0;
-//    }
-
-//    UBDocumentTreeNode *nodeParent = nodeFromIndex(parent);
-//    if (!nodeParent) {
-//        return 0;
-//    }
-
-//    return nodeParent->children().count();
-//}
-
-//int UBDocumentTreeModel::columnCount(const QModelIndex &parent) const
-//{
-//    Q_UNUSED(parent)
-//    return 1;
-//}
-
-//QVariant UBDocumentTreeModel::data(const QModelIndex &index, int role) const
-//{
-//    if (!index.isValid()) {
-//        return QVariant();
-//    }
-
-//    UBDocumentTreeNode *dataNode = nodeFromIndex(index);
-//    if (!dataNode)
-//        return QVariant();
-
-//    if (index.column() == 0) {
-
-//        switch (role) {
-//        case (Qt::DecorationRole) :
-//            if (mCurrentNode && mCurrentNode == dataNode) {
-//                return QIcon(":images/currentDocument.png");
-//            } else {
-//                if (index == trashIndex()) {
-//                    return QIcon(":images/trash.png");
-//                } else if (isConstant(index)) {
-//                    return QIcon(":images/libpalette/ApplicationsCategory.svg");
-//                }
-//                switch (static_cast<int>(dataNode->nodeType())) {
-//                case UBDocumentTreeNode::Catalog :
-//                    return QIcon(":images/folder.png");
-//                case UBDocumentTreeNode::Document :
-//                    return QIcon(":images/toolbar/board.png");
-//                }
-//            }
-//            break;
-
-//        case (Qt::DisplayRole) :
-//            return dataNode->displayName();
-//            break;
-
-//        case (Qt::UserRole +1):
-//            return QVariant::fromValue(dataNode);
-//            break;
-
-//        case (Qt::FontRole) :
-//            if (isConstant(index)) {
-//                QFont font;
-//                font.setBold(true);
-//                return font;
-//            }
-//            break;
-
-//        case (Qt::ForegroundRole) :
-//            if (isConstant(index)) {
-//                return Qt::darkGray;
-//            }
-//            break;
-
-//        case (Qt::BackgroundRole) :
-//            if (isConstant(index)) {
-//                return QBrush(0xD9DFEB);
-//            }
-//            if (mHighLighted.isValid() && index == mHighLighted) {
-//                return QBrush(0x6682B5);
-//            }
-//            break;
-//        }
-//    }
-
-//    return QVariant();
 //}
 
 //bool UBDocumentTreeModel::setData(const QModelIndex &index, const QVariant &value, int role)

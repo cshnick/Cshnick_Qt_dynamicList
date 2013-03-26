@@ -10,6 +10,9 @@
 
 namespace Docs {
 
+class CatalogNode;
+class GeneratorNode;
+
 enum NodeType {
     NoType = 0
     ,DocumentType
@@ -23,25 +26,32 @@ class NodePrivate;
 class DOCUMENTMANAGERSHARED_EXPORT Node : public QObject
 {
     Q_OBJECT
+
 public:
+    typedef QList<Node*> ListNode;
+
     explicit Node(QObject *parent = 0);
     virtual ~Node();
-    QVariant data(int role = CustomRole);
+    QVariant data(int role = CustomRole) const;
     void setData(QVariant data, int role = CustomRole);
 
-protected:
-    Node *mParent;
+    CatalogNode *parentNode();
+    GeneratorNode *getGeneratorNode();
 
 public: //virtual
     virtual bool isCatalog() const = 0;
     virtual int type() const;
     virtual QString displayName() const = 0;
-    virtual QIcon icon() const;
+    virtual QIcon displayIcon() const;
+    virtual QFont displayFont() const;
+    virtual QBrush backgroundColor() const;
+    virtual QBrush foregroundColor() const;
     
 private:
     NodePrivate *d;
 
     friend class NodePrivate;
+    friend class CatalogNodePrivate;
 };
 
 class CatalogNodePrivate;
@@ -49,22 +59,50 @@ class DOCUMENTMANAGERSHARED_EXPORT CatalogNode : public Node
 {
     Q_OBJECT
 public:
-    CatalogNode(QObject *parent);
+    CatalogNode(QObject *parent = 0);
     ~CatalogNode();
 
-
-
     bool isCatalog() const;
-
-
-protected:
-    QList<Node*> childrenNodes;
+    virtual int type() const;
+    virtual QString displayName() const;
+    virtual void addChild(Node *pNode);
+    virtual void insertChild(int position, Node *pNode);
+    virtual void removechild(int position);
+    ListNode childrenNodes();
 
 private:
     CatalogNodePrivate *d;
 
     friend class CatalogNodePrivate;
 
+};
+
+class DOCUMENTMANAGERSHARED_EXPORT GeneratorNode : public CatalogNode
+{
+    Q_OBJECT
+
+public:
+    GeneratorNode(DocumentGenerator *pGenerator);
+    void setDocGenerator(DocumentGenerator *other) {mGenerator = other;}
+    DocumentGenerator *docGenerator() {return mGenerator;}
+    int type() const;
+
+    QString displayName() const;
+    QIcon displayIcon() const;
+
+
+private:
+    GeneratorNode(QObject *) {;}
+    GeneratorNode() {;}
+    DocumentGenerator *mGenerator;
+};
+
+class RootNode : public CatalogNode {
+    Q_OBJECT
+
+public:
+    QString displayName() const;
+    int type() const;
 };
 
 

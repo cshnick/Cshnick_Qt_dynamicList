@@ -14,6 +14,8 @@ SOURCES += DocumentManager.cpp \
     Node.cpp \
     ExplorerView.cpp
 
+QT += core gui
+
 HEADERS += DocumentManager.h\
         DocumentManager_global.h \
     ExplorerModel.h \
@@ -28,3 +30,11 @@ unix:!symbian {
     }
     INSTALLS += target
 }
+
+
+INCLUDEPATH += \
+               $$PWD/../TstDocGenerator1
+
+
+LIBS += \
+        -L$$PWD/../TstDocGenerator1 -lTstDocGenerator1

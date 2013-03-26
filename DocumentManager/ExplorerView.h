@@ -2,9 +2,7 @@
 #define EXPLORERVIEW_H
 
 #include "DocumentManager.h"
-
 #include <QTreeView>
-
 
 namespace Docs {
 
