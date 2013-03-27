@@ -5,10 +5,6 @@
 #include "DocumentManager.h"
 #include "tstdocgenerator1.h"
 
-enum crole
-{
-    CustomRole = 0
-};
 
 int main(int argc, char *argv[])
 {
@@ -20,10 +16,6 @@ int main(int argc, char *argv[])
 //    manager.setVisible(true);
     qDebug() << "started";
     Docs::DocumentManager docMan;
-    TstDocGenerator1 *gen1 = new TstDocGenerator1;
-    gen1->createNodeTree();
-    docMan.registerGenerator(gen1);
-    docMan.print();
     docMan.setVisible(true);
     return a.exec();
 }

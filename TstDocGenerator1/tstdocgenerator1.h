@@ -24,6 +24,7 @@ public:
     int type() const;
 
     QString displayName() const;
+    QIcon displayIcon() const;
     bool isCatalog() const;
     void setMetadata(const QDomDocument &data);
 
@@ -47,7 +48,7 @@ public:
 
     void createNodeTree();
     Docs::GeneratorNode *rootNode() const;
-
+    QAction *associatedAction() const;
 
 private:
     TstDocGenerator1Private *d;

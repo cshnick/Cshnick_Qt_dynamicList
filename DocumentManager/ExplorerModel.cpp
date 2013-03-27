@@ -208,6 +208,15 @@ void ExplorerModel::registerGenerator(DocumentGenerator *pGenerator)
     endResetModel();
 }
 
+QModelIndex ExplorerModel::firstGeneratorIndex() const
+{
+    if (d->mRegisteredGenerators.count()) {
+        return createIndex(0, 0, d->mRegisteredGenerators.first());
+    }
+
+    return QModelIndex();
+}
+
 
 } //namespace Docs
 

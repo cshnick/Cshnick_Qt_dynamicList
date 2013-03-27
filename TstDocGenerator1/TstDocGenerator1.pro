@@ -6,6 +6,7 @@
 
 TARGET = TstDocGenerator1
 TEMPLATE = lib
+CONFIG += plugin
 
 INCLUDEPATH += $$PWD/../DocumentManager \
                $$PWD/../picturesmodelview \
@@ -26,11 +27,7 @@ HEADERS += tstdocgenerator1.h\
         TstDocGenerator1_global.h
 
 unix:!symbian {
-    maemo5 {
-        target.path = /opt/usr/lib
-    } else {
-        target.path = /usr/lib
-    }
+    target.path = /usr/lib
     INSTALLS += target
 }
 

@@ -162,6 +162,10 @@ QString CatalogNode::displayName() const
 {
     return data(Docs::displayNameRole).toString();
 }
+QIcon CatalogNode::displayIcon() const
+{
+    return data(Docs::displayIconRole).value<QIcon>();
+}
 void CatalogNode::addChild(Node *pNode)
 {
     d->insertChild(d->mChildrenNodes.count(), pNode);

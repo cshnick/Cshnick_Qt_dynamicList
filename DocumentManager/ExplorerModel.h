@@ -41,6 +41,7 @@ public:
 
     Node *nodeFromIndex(const QModelIndex &pIndex) const;
     void registerGenerator(DocumentGenerator *pGenerator);
+    QModelIndex firstGeneratorIndex() const;
     
 private:
     ExplorerModelPrivate *d;

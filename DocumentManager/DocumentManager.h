@@ -3,15 +3,17 @@
 
 #include "DocumentManager_global.h"
 
-//#include "Node.h"
 #include <QObject>
 #include <QIcon>
+#include <QtPlugin>
+#include <QAction>
 
 namespace Docs {
 
 enum Role {
     internalNameRole = 0
     , displayNameRole
+    , displayIconRole
     , CustomRole = 100
 };
 
@@ -31,6 +33,11 @@ public:
     void registerGenerator(DocumentGenerator *pGenerator);
     void print();
     void setVisible(bool pVisible);
+    QWidget *topWidget() const;
+
+private slots:
+    void loadPlugins();
+    void actionMenuChecked(bool checked);
 
 private:
 
@@ -49,13 +56,15 @@ public:
     virtual QString displayText() const = 0;
     virtual QIcon icon() const = 0;
 
-    virtual void createNodeTree();
+    virtual void createNodeTree() = 0;
     virtual GeneratorNode *rootNode() const = 0;
+    virtual QAction *associatedAction() const = 0;
 
 };
 
 } //namespace Documents
 
-
+Q_DECLARE_INTERFACE(Docs::DocumentGenerator,
+                    "org.openSankore.DocumentGenerator")
 
 #endif // DOCUMENTMANAGER_H

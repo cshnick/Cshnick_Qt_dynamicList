@@ -3,5 +3,7 @@
         <file>Images/folder.png</file>
         <file>Images/marker.png</file>
         <file>Images/uniboard.png</file>
+        <file>Images/ApplicationsCategory.svg</file>
+        <file>Images/currentDocument.png</file>
     </qresource>
 </RCC>

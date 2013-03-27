@@ -65,6 +65,7 @@ public:
     bool isCatalog() const;
     virtual int type() const;
     virtual QString displayName() const;
+    virtual QIcon displayIcon() const;
     virtual void addChild(Node *pNode);
     virtual void insertChild(int position, Node *pNode);
     virtual void removechild(int position);
@@ -89,7 +90,6 @@ public:
 
     QString displayName() const;
     QIcon displayIcon() const;
-
 
 private:
     GeneratorNode(QObject *) {;}

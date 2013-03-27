@@ -1,5 +1,10 @@
 #include "ExplorerView.h"
 
+#include <QTreeView>
+#include <QHeaderView>
+//#include <QtGui>
+
+
 namespace Docs {
 
 class ExplorerViewPrivate {
@@ -19,6 +24,7 @@ ExplorerView::ExplorerView(QWidget *parent)
     : QTreeView(parent)
     , d(new ExplorerViewPrivate(this))
 {
+    header()->setVisible(false);
 }
 
 ExplorerView::~ExplorerView()

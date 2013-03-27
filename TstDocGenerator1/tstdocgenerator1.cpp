@@ -33,6 +33,12 @@ static const QString cMyDocumentsName = "MyDocuments";
 static const QString cUntitledDocumentsName = "UntitledDocuments";
 static const QString cModelName = "Models";
 
+static const QString rcDocumentIcon = ":Images/marker.png";
+static const QString rcCatalogIcon = ":Images/folder.png";
+static const QString rcGeneratorIcon = ":Images/uniboard.png";
+static const QString rcConstantCatalogIcon = ":Images/ApplicationsCategory.svg";
+static const QString rcCurrentDocumentIcon = ":Images/currentDocument.png";
+
 class MetaDataHandler {
 public:
     MetaDataHandler(const QDomDocument &doc = QDomDocument())
@@ -154,6 +160,11 @@ QString DocumentNode::displayName() const
     return d->hl.queryName("Undefined");
 }
 
+QIcon DocumentNode::displayIcon() const
+{
+    return QIcon(rcDocumentIcon);
+}
+
 bool DocumentNode::isCatalog() const
 {
     return false;
@@ -250,6 +261,7 @@ public:
                 Docs::CatalogNode *newChild = new Docs::CatalogNode();
                 newChild->setData(curLevelName, Docs::internalNameRole);
                 newChild->setData(curLevelName, Docs::displayNameRole);
+                newChild->setData(QIcon(rcCatalogIcon), Docs::displayIconRole);
                 parentNode->addChild(newChild);
                 parentNode = newChild;
             }
@@ -260,19 +272,25 @@ public:
 
     void createConstantNodes()
     {
+        QIcon constIcon = QIcon(rcConstantCatalogIcon);
+
         mRootNode = new Docs::GeneratorNode(q);
         mMyDocumentsNode = new Docs::CatalogNode;
         mMyDocumentsNode->setData(QObject::tr("My Documents"), Docs::displayNameRole);
         mMyDocumentsNode->setData(cMyDocumentsName, Docs::internalNameRole);
+        mMyDocumentsNode->setData(constIcon, Docs::displayIconRole);
         mUntitledDocumentsNode = new Docs::CatalogNode;
         mUntitledDocumentsNode->setData(QObject::tr("Untitled documents"), Docs::displayNameRole);
         mUntitledDocumentsNode->setData(cUntitledDocumentsName, Docs::internalNameRole);
+        mUntitledDocumentsNode->setData(constIcon, Docs::displayIconRole);
         mModelsNode = new Docs::CatalogNode;
         mModelsNode->setData(QObject::tr("Models"), Docs::displayNameRole);
         mModelsNode->setData(cModelName, Docs::internalNameRole);
+        mModelsNode->setData(constIcon, Docs::displayIconRole);
         mTrashNode = new Docs::CatalogNode;
         mTrashNode->setData(QObject::tr("Trash"), Docs::displayNameRole);
         mTrashNode->setData(cTrashName, Docs::internalNameRole);
+        mTrashNode->setData(constIcon, Docs::displayIconRole);
 
         mRootNode->addChild(mMyDocumentsNode);
             mMyDocumentsNode->addChild(mUntitledDocumentsNode);
@@ -309,7 +327,7 @@ QString TstDocGenerator1::displayText() const
 
 QIcon TstDocGenerator1::icon() const
 {
-    return QIcon();
+    return QIcon(rcGeneratorIcon);
 }
 
 void TstDocGenerator1::createNodeTree()
@@ -329,9 +347,7 @@ void TstDocGenerator1::createNodeTree()
             continue;
         }
 
-        QString dir = hl.queryDir();
-
-        Docs::CatalogNode *nodeDir = d->nodeFromDir(dir);
+        Docs::CatalogNode *nodeDir = d->nodeFromDir(hl.queryDir());
         DocumentNode *docNode = new DocumentNode;
         docNode->setMetadata(metaData);
 
@@ -344,4 +360,17 @@ Docs::GeneratorNode *TstDocGenerator1::rootNode() const
 {
     return d->mRootNode;
 }
+
+QAction *TstDocGenerator1::associatedAction() const
+{
+    static QAction *action = 0;
+    if (!action) {
+        action = new QAction(icon(), displayText(), 0);
+        action->setCheckable(true);
+    }
+
+    return action;
+}
+
+Q_EXPORT_PLUGIN2(TstDocGenerator1, TstDocGenerator1)
 
