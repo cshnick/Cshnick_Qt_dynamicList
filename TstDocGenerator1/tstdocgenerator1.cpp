@@ -5,6 +5,7 @@
 #include <QDir>
 #include <QDebug>
 #include <QFile>
+#include <QList>
 #include "Node.h"
 
 static const QString tRDF = "RDF";
@@ -26,6 +27,11 @@ static const QString tSessionGradeLevel = "sessionGradeLevel";
 static const QString tSessionSubjects = "sessionSubjects";
 static const QString tSessionType = "sessionType";
 static const QString tSessionLicence = "sessionLicence";
+
+static const QString cTrashName = "_Trash:";
+static const QString cMyDocumentsName = "MyDocuments";
+static const QString cUntitledDocumentsName = "UntitledDocuments";
+static const QString cModelName = "Models";
 
 class MetaDataHandler {
 public:
@@ -145,7 +151,12 @@ int DocumentNode::type() const
 
 QString DocumentNode::displayName() const
 {
-    return "Undefined";
+    return d->hl.queryName("Undefined");
+}
+
+bool DocumentNode::isCatalog() const
+{
+    return false;
 }
 
 void DocumentNode::setMetadata(const QDomDocument &data)
@@ -175,8 +186,8 @@ public:
         Q_ASSERT(QFileInfo(result).exists());
         return result;
     }
-    QDomDocument metadataFromDir(const QString metadataDir) {
-
+    QDomDocument metadataFromDir(const QString metadataDir)
+    {
         QString contentFile(metaDataFilePath(metadataDir));
         QDomDocument xmlDom;
         QFile inFile(contentFile);
@@ -203,23 +214,70 @@ public:
         return xmlDom;
     }
 
-    void createConstantNodes() {
+    Docs::CatalogNode *nodeFromDir(const QString &dir)
+    {
+        QStringList pathList = dir.split("/", QString::SkipEmptyParts);
+
+        if (pathList.isEmpty()) {
+            return mUntitledDocumentsNode;
+        }
+
+        if (pathList.first() != mMyDocumentsNode->data(Docs::internalNameRole).toString()
+                && pathList.first() != mUntitledDocumentsNode->data(Docs::internalNameRole).toString()
+                && pathList.first() != mModelsNode->data(Docs::internalNameRole).toString()
+                && pathList.first() != mTrashNode->data(Docs::internalNameRole).toString()) {
+            pathList.prepend(mMyDocumentsNode->data(Docs::internalNameRole).toString());
+        }
+
+        Docs::CatalogNode *parentNode = static_cast<Docs::CatalogNode*>(mRootNode);
+        bool searchingNode = true;
+        while (!pathList.isEmpty())
+        {
+            QString curLevelName = pathList.takeFirst();
+            if (searchingNode) {
+                searchingNode = false;
+                for (int i = 0; i < parentNode->childrenNodes().count() && parentNode->childrenNodes().at(i)->isCatalog(); ++i) {
+                    Docs::CatalogNode *curChildCatalog = static_cast<Docs::CatalogNode *>(parentNode->childrenNodes().at(i));
+                    if (curChildCatalog->data(Docs::internalNameRole).toString() == curLevelName) {
+                        searchingNode = true;
+                        parentNode = curChildCatalog;
+                        break;
+                    }
+                }
+            }
+
+            if (!searchingNode) {
+                Docs::CatalogNode *newChild = new Docs::CatalogNode();
+                newChild->setData(curLevelName, Docs::internalNameRole);
+                newChild->setData(curLevelName, Docs::displayNameRole);
+                parentNode->addChild(newChild);
+                parentNode = newChild;
+            }
+        }
+
+        return parentNode;
+    }
+
+    void createConstantNodes()
+    {
         mRootNode = new Docs::GeneratorNode(q);
         mMyDocumentsNode = new Docs::CatalogNode;
-        mMyDocumentsNode->setData("MyDocuments", Docs::displayNameRole);
+        mMyDocumentsNode->setData(QObject::tr("My Documents"), Docs::displayNameRole);
+        mMyDocumentsNode->setData(cMyDocumentsName, Docs::internalNameRole);
         mUntitledDocumentsNode = new Docs::CatalogNode;
-        mUntitledDocumentsNode->setData("UntitledDocuments", Docs::displayNameRole);
+        mUntitledDocumentsNode->setData(QObject::tr("Untitled documents"), Docs::displayNameRole);
+        mUntitledDocumentsNode->setData(cUntitledDocumentsName, Docs::internalNameRole);
         mModelsNode = new Docs::CatalogNode;
-        mModelsNode->setData("Models", Docs::displayNameRole);
+        mModelsNode->setData(QObject::tr("Models"), Docs::displayNameRole);
+        mModelsNode->setData(cModelName, Docs::internalNameRole);
         mTrashNode = new Docs::CatalogNode;
-        mTrashNode->setData("Trash", Docs::displayNameRole);
+        mTrashNode->setData(QObject::tr("Trash"), Docs::displayNameRole);
+        mTrashNode->setData(cTrashName, Docs::internalNameRole);
 
         mRootNode->addChild(mMyDocumentsNode);
             mMyDocumentsNode->addChild(mUntitledDocumentsNode);
         mRootNode->addChild(mModelsNode);
         mRootNode->addChild(mTrashNode);
-
-//        mRootNode->setDocGenerator(q);
     }
 
 private:
@@ -260,57 +318,24 @@ void TstDocGenerator1::createNodeTree()
 
     QDir rootDir(d->mRootPath.toLocalFile());
     QFileInfoList contentList = rootDir.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Time | QDir::Reversed);
-    foreach(QFileInfo path, contentList)
-    {
+    foreach(QFileInfo path, contentList) {
         QString fullPath = path.absoluteFilePath();
-//        QDir dir(fullPath);
+        QDomDocument metaData = d->metadataFromDir(fullPath);
+        Q_ASSERT(!metaData.isNull());
 
-//        if (dir.entryList(QDir::Files | QDir::NoDotAndDotDot).size() > 0)
-//        {
-            QDomDocument metaData = d->metadataFromDir(fullPath);
-            Q_ASSERT(!metaData.isNull());
+        MetaDataHandler hl(metaData);
+        hl.print();
+        if (!hl.isValidMeta()) {
+            continue;
+        }
 
-            MetaDataHandler hl(metaData);
-            hl.print();
-            if (!hl.isValidMeta()) {
-                continue;
-            }
+        QString dir = hl.queryDir();
 
-            QString dir = hl.queryDir();
-            qDebug();
-//            DocumentNode::queryData(metaData);
+        Docs::CatalogNode *nodeDir = d->nodeFromDir(dir);
+        DocumentNode *docNode = new DocumentNode;
+        docNode->setMetadata(metaData);
 
-//            QDomDocument
-//            QMap<QString, QVariant> metadatas = UBMetadataDcSubsetAdaptor::load(fullPath);
-//            QString docGroupName = metadatas.value(UBSettings::documentGroupName, QString()).toString();
-//            QString docName = metadatas.value(UBSettings::documentName, QString()).toString();
-
-//            if (docName.isEmpty()) {
-//                qDebug() << "Group name and document name are empty in UBPersistenceManager::createDocumentProxiesStructure()";
-//                continue;
-//            }
-
-//            QModelIndex parentIndex = mDocumentTreeStructureModel->goTo(docGroupName);
-//            if (!parentIndex.isValid()) {
-//                return;
-//            }
-
-//            UBDocumentProxy* docProxy = new UBDocumentProxy(fullPath); // managed in UBDocumentTreeNode
-//            foreach(QString key, metadatas.keys()) {
-//                docProxy->setMetaData(key, metadatas.value(key));
-//            }
-
-//            docProxy->setPageCount(sceneCount(docProxy));
-//            bool addDoc = false;
-//            if (!interactive) {
-//                addDoc = true;
-//            } else if (processInteractiveReplacementDialog(docProxy) == QDialog::Accepted) {
-//                addDoc = true;
-//            }
-//            if (addDoc) {
-//                mDocumentTreeStructureModel->addDocument(docProxy, parentIndex);
-//            }
-//        }
+        nodeDir->addChild(docNode);
     }
 
 }

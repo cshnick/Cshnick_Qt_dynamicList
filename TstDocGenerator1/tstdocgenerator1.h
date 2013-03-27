@@ -24,6 +24,7 @@ public:
     int type() const;
 
     QString displayName() const;
+    bool isCatalog() const;
     void setMetadata(const QDomDocument &data);
 
 private:

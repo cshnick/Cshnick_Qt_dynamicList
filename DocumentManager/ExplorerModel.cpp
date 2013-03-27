@@ -6,10 +6,6 @@
 
 #include "Node.h"
 
-
-//#include <QObject>
-
-
 namespace Docs {
 
 class ExplorerModelPrivate
@@ -33,7 +29,7 @@ public:
         }
 
         CatalogNode *nodeParent = catalogNodeFromIndex(parent);
-        if (!nodeParent || row > nodeParent->children().count() - 1) {
+        if (!nodeParent || row > nodeParent->childrenNodes().count() - 1) {
             return QModelIndex();
         }
 
@@ -78,11 +74,11 @@ public:
         }
 
         CatalogNode *nodeParent = catalogNodeFromIndex(parent);
-        if (!nodeParent) {
+        if (!nodeParent || !nodeParent->isCatalog()) {
             return 0;
         }
 
-        return nodeParent->children().count();
+        return nodeParent->childrenNodes().count();
     }
 
     int columnCount(const QModelIndex &parent) const
@@ -209,7 +205,6 @@ void ExplorerModel::registerGenerator(DocumentGenerator *pGenerator)
     beginResetModel();
     d->mRegisteredGenerators.append(pGenerator);
     d->mRootNode->addChild(pGenerator->rootNode());
-
     endResetModel();
 }
 
