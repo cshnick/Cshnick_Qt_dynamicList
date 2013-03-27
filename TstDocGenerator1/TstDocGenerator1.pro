@@ -33,3 +33,6 @@ unix:!symbian {
     }
     INSTALLS += target
 }
+
+RESOURCES += \
+    res.qrc

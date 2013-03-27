@@ -37,4 +37,4 @@ INCLUDEPATH += \
 
 
 LIBS += \
-        -L$$PWD/../TstDocGenerator1 -lTstDocGenerator1
+#        -L$$PWD/../TstDocGenerator1 -lTstDocGenerator1

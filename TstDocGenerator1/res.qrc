@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/">
+        <file>Images/folder.png</file>
+        <file>Images/marker.png</file>
+        <file>Images/uniboard.png</file>
+    </qresource>
+</RCC>
