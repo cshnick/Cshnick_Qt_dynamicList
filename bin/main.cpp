@@ -4,10 +4,12 @@
 #include "tstgenerator.h"
 #include "DocumentManager.h"
 #include "tstdocgenerator1.h"
-
+#include "PluginManager.h"
 
 int main(int argc, char *argv[])
 {
+    Plugins::PluginManager plugins;
+
     QApplication a(argc, argv);
 
     //    QPixmapCache::setCacheLimit(2048);

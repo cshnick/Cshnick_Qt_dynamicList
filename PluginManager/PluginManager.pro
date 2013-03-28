@@ -23,6 +23,8 @@ unix:!symbian {
     INSTALLS += target
 }
 
+QT += xml
+
 SERVICE_DIR =  $$PWD/service
 MOC_DIR = $$SERVICE_DIR
 OBJECTS_DIR = $$SERVICE_DIR
