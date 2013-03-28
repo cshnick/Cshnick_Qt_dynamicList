@@ -7,8 +7,6 @@
 
 #include <QtGui>
 
-static const QString DocGeneratorPath_1 = "../TstDocGenerator1/libTstDocGenerator1.so";
-
 namespace Docs {
 
 class DocumentManagerPrivate
@@ -41,7 +39,7 @@ public:
         }
 
     }
-    void registerGenerator(DocumentGenerator *pGenerator) {
+    void registerGenerator(IDocumentGenerator *pGenerator) {
         if (mRegisteredGenerators.contains(pGenerator)) {
             return;
         }
@@ -70,34 +68,10 @@ public:
         mTopWidget->setLayout(mainLayout);
     }
 
-    void loadPlugins()
-    {
-        QPluginLoader loader_1(DocGeneratorPath_1);
-        if (!loader_1.fileName().isEmpty()) {
-            qDebug() << "invalid path" << DocGeneratorPath_1 << "for plugin";
-        }
-        loader_1.load();
-
-        TstDocGenerator1 *generator = static_cast<TstDocGenerator1*>(loader_1.instance());
-
-        QAction *action = generator->associatedAction();
-        QObject::connect(action, SIGNAL(toggled(bool)), q, SLOT(actionMenuChecked(bool)));
-        mPluginsMenu->addAction(action);
-        bool generator_1Exists_inSettings = mSettings->value(DocGeneratorPath_1).toBool();
-        action->setChecked(generator_1Exists_inSettings);
-        if (generator_1Exists_inSettings) {
-            generator->createNodeTree();
-            q->registerGenerator(generator);
-
-        } else {
-            loader_1.unload();
-        }
-    }
-
 private:
     DocumentManager *q;
 
-    QList<DocumentGenerator *> mRegisteredGenerators;
+    QList<IDocumentGenerator *> mRegisteredGenerators;
     ExplorerModel *mExplorerModel;
     ExplorerView *mExplorerView;
     QWidget *mTopWidget;
@@ -113,7 +87,6 @@ DocumentManager::DocumentManager(QObject *parent)
     : QObject(parent)
     , d(new DocumentManagerPrivate(this))
 {
-    QTimer::singleShot(0, this, SLOT(loadPlugins()));
 }
 
 DocumentManager::~DocumentManager()
@@ -123,7 +96,7 @@ DocumentManager::~DocumentManager()
     }
 }
 
-void DocumentManager::registerGenerator(DocumentGenerator *pGenerator)
+void DocumentManager::registerGenerator(IDocumentGenerator *pGenerator)
 {
     d->registerGenerator(pGenerator);
 }
@@ -145,30 +118,10 @@ QWidget *DocumentManager::topWidget() const
     return d->mTopWidget;
 }
 
-void DocumentManager::loadPlugins()
-{
-    d->loadPlugins();
-}
-
 void DocumentManager::actionMenuChecked(bool checked)
 {
-    d->mSettings->setValue(DocGeneratorPath_1, checked);
+    d->mSettings->setValue("", checked);
 }
-
-DocumentGenerator::DocumentGenerator(QObject *parent)
-    : QObject(parent)
-{
-}
-
-DocumentGenerator::~DocumentGenerator()
-{
-
-}
-
-void DocumentGenerator::createNodeTree()
-{
-}
-
 
 } //namespace Docs
 

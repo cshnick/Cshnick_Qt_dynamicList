@@ -4,11 +4,17 @@
 #
 #-------------------------------------------------
 
-INCLUDEPATH += $$PWD/../picturesmodelview
-LIBS += -L$$PWD/../picturesmodelview -lpicturesmodelview
+message (thumbman $$PWD/../../ThumbnailManager)
+
+INCLUDEPATH += $$PWD/../../ThumbnailManager
+LIBS += -L$$PWD/../../Documents -lDocuments
 
 TARGET = TstGenerator
 TEMPLATE = lib
+
+SERVICE_DIR =  $$PWD/service
+MOC_DIR = $$SERVICE_DIR
+OBJECTS_DIR = $$SERVICE_DIR
 
 DEFINES += TSTGENERATOR_LIBRARY
 
@@ -18,10 +24,6 @@ HEADERS += tstgenerator.h\
         TstGenerator_global.h
 
 unix:!symbian {
-    maemo5 {
-        target.path = /opt/usr/lib
-    } else {
-        target.path = /usr/lib
-    }
+    target.path = /usr/lib
     INSTALLS += target
 }

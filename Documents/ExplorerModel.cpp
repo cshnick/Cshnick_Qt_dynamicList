@@ -5,6 +5,7 @@
 #include <QtGui>
 
 #include "Node.h"
+#include "IDocumentGenerator.h"
 
 namespace Docs {
 
@@ -108,7 +109,7 @@ public:
 private:
     ExplorerModel *q;
     RootNode *mRootNode;
-    QList<DocumentGenerator *> mRegisteredGenerators;
+    QList<IDocumentGenerator *> mRegisteredGenerators;
 
 
     friend class ExplorerModel;
@@ -200,7 +201,7 @@ Node *ExplorerModel::nodeFromIndex(const QModelIndex &pIndex) const
     return d->nodeFromIndex(pIndex);
 }
 
-void ExplorerModel::registerGenerator(DocumentGenerator *pGenerator)
+void ExplorerModel::registerGenerator(IDocumentGenerator *pGenerator)
 {
     beginResetModel();
     d->mRegisteredGenerators.append(pGenerator);

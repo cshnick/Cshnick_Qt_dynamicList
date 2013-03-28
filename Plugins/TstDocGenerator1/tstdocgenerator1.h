@@ -4,7 +4,8 @@
 #include "TstDocGenerator1_global.h"
 
 #include <QUrl>
-#include "DocumentManager.h"
+//#include "DocumentManager.h"
+#include "IDocumentGenerator.h"
 #include "Node.h"
 
 class QDomDocument;
@@ -36,9 +37,10 @@ private:
 };
 
 class TstDocGenerator1Private;
-class TSTDOCGENERATOR1SHARED_EXPORT TstDocGenerator1 : public Docs::DocumentGenerator
+class TSTDOCGENERATOR1SHARED_EXPORT TstDocGenerator1 : public Docs::IDocumentGenerator
 {
     Q_OBJECT
+//    Q_INTERFACES(DocumentGenerator)
 
 public:
     TstDocGenerator1(QObject *parent = 0);

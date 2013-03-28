@@ -1,4 +1,4 @@
-#include "dynpicturesmodel.h"
+#include "ThumbnailManager.h"
 
 #include <QtGui>
 #include <private/qlistview_p.h>

@@ -314,7 +314,7 @@ private:
 };
 
 TstDocGenerator1::TstDocGenerator1(QObject *parent)
-    : Docs::DocumentGenerator(parent)
+    : Docs::IDocumentGenerator(parent)
     , d(new TstDocGenerator1Private(this))
 {
 

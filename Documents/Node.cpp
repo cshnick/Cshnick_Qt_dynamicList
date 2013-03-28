@@ -5,6 +5,7 @@
 #include <QBrush>
 #include <QVariant>
 #include "DocumentManager.h"
+#include "IDocumentGenerator.h"
 
 namespace Docs {
 
@@ -192,7 +193,7 @@ int GeneratorNode::type() const
     return DocumentGeneratorType;
 }
 
-GeneratorNode::GeneratorNode(DocumentGenerator *pGenerator)
+GeneratorNode::GeneratorNode(IDocumentGenerator *pGenerator)
     :mGenerator(pGenerator)
 {
 

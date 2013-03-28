@@ -2,7 +2,7 @@
 #define TSTGENERATOR_H
 
 #include "TstGenerator_global.h"
-#include "dynpicturesmodel.h"
+#include "ThumbnailManager.h"
 
 class TSTGENERATORSHARED_EXPORT TstGenerator : public DPImageServicer
 {

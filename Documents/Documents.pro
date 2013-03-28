@@ -4,15 +4,24 @@
 #
 #-------------------------------------------------
 
-TARGET = DocumentManager
+TARGET = Documents
 TEMPLATE = lib
 
-DEFINES += DOCUMENTMANAGER_LIBRARY
+include($$PWD/../ThumbnailManager/ThumbnailManager.pri)
+
+SERVICE_DIR =  $$PWD/service
+MOC_DIR = $$SERVICE_DIR
+OBJECTS_DIR = $$SERVICE_DIR
+
+DESTDIR = $$PWD
+
+DEFINES += DOCUMENTS_LIBRARY
 
 SOURCES += DocumentManager.cpp \
     ExplorerModel.cpp \
     Node.cpp \
-    ExplorerView.cpp
+    ExplorerView.cpp \
+    IDocumentGenerator.cpp
 
 QT += core gui
 
@@ -20,20 +29,17 @@ HEADERS += DocumentManager.h\
         DocumentManager_global.h \
     ExplorerModel.h \
     Node.h \
-    ExplorerView.h
+    ExplorerView.h \
+    IDocumentGenerator.h
 
 unix:!symbian {
-    maemo5 {
-        target.path = /opt/usr/lib
-    } else {
-        target.path = /usr/lib
-    }
-    INSTALLS += target
+   target.path = /usr/lib
+   INSTALLS += target
 }
 
-
+PLUGINS_PATH = $$PWD/../Plugins
 INCLUDEPATH += \
-               $$PWD/../TstDocGenerator1
+               $$PLUGINS_PATH/TstDocGenerator1
 
 
 LIBS += \

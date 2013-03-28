@@ -23,7 +23,7 @@ enum NodeType {
 };
 
 class NodePrivate;
-class DOCUMENTMANAGERSHARED_EXPORT Node : public QObject
+class DOCUMENTSSHARED_EXPORT Node : public QObject
 {
     Q_OBJECT
 
@@ -55,7 +55,7 @@ private:
 };
 
 class CatalogNodePrivate;
-class DOCUMENTMANAGERSHARED_EXPORT CatalogNode : public Node
+class DOCUMENTSSHARED_EXPORT CatalogNode : public Node
 {
     Q_OBJECT
 public:
@@ -78,14 +78,14 @@ private:
 
 };
 
-class DOCUMENTMANAGERSHARED_EXPORT GeneratorNode : public CatalogNode
+class DOCUMENTSSHARED_EXPORT GeneratorNode : public CatalogNode
 {
     Q_OBJECT
 
 public:
-    GeneratorNode(DocumentGenerator *pGenerator);
-    void setDocGenerator(DocumentGenerator *other) {mGenerator = other;}
-    DocumentGenerator *docGenerator() {return mGenerator;}
+    GeneratorNode(IDocumentGenerator *pGenerator);
+    void setDocGenerator(IDocumentGenerator *other) {mGenerator = other;}
+    IDocumentGenerator *docGenerator() {return mGenerator;}
     int type() const;
 
     QString displayName() const;
@@ -94,7 +94,7 @@ public:
 private:
     GeneratorNode(QObject *) {;}
     GeneratorNode() {;}
-    DocumentGenerator *mGenerator;
+    IDocumentGenerator *mGenerator;
 };
 
 class RootNode : public CatalogNode {

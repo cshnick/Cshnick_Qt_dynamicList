@@ -1,5 +1,5 @@
-#ifndef DYNPICTURESMANAGER_H
-#define DYNPICTURESMANAGER_H
+#ifndef THUMBNAILMANAGER_H
+#define THUMBNAILMANAGER_H
 
 #include "picturesmodelview_global.h"
 
@@ -32,7 +32,7 @@ namespace Globals {
     const bool useMemoryCleaner = true;
 }
 
-class PICTURESMODELVIEWSHARED_EXPORT DynPicturesManager : public QObject
+class THUMBNAILMANAGERSHARED_EXPORT DynPicturesManager : public QObject
 {
     Q_OBJECT
 
@@ -192,7 +192,7 @@ struct DPImageReply : public DPImageRequest
 };
 
 class DPImageServicerPrivate;
-class PICTURESMODELVIEWSHARED_EXPORT DPImageServicer : public QThread
+class THUMBNAILMANAGERSHARED_EXPORT DPImageServicer : public QThread
 {
     Q_OBJECT
 
@@ -220,4 +220,4 @@ private:
     friend class DPImageServicerPrivate;
 };
 
-#endif // DYNPICTURESMANAGER_H
+#endif // THUMBNAILMANAGER_H

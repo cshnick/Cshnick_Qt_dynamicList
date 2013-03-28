@@ -9,11 +9,10 @@ namespace Docs {
 class ExplorerModelPrivate;
 class Node;
 class CatalogNode;
-class DocumentGenerator;
+class IDocumentGenerator;
 
 
-
-class DOCUMENTMANAGERSHARED_EXPORT ExplorerModel : public QAbstractItemModel
+class DOCUMENTSSHARED_EXPORT ExplorerModel : public QAbstractItemModel
 {
     Q_OBJECT
 public:
@@ -40,7 +39,7 @@ public:
 //    QPersistentModelIndex persistentIndexForNode(UBDocumentTreeNode *pNode);
 
     Node *nodeFromIndex(const QModelIndex &pIndex) const;
-    void registerGenerator(DocumentGenerator *pGenerator);
+    void registerGenerator(IDocumentGenerator *pGenerator);
     QModelIndex firstGeneratorIndex() const;
     
 private:

@@ -8,14 +8,18 @@ TARGET = TstDocGenerator1
 TEMPLATE = lib
 CONFIG += plugin
 
-INCLUDEPATH += $$PWD/../DocumentManager \
-               $$PWD/../picturesmodelview \
-               $$PWD/../TstGenerator
+LIB_ALIAS = lib
+
+INCLUDEPATH += $$PWD/../../Documents \
+               $$PWD/../../ThumbnailManager \
+               $$PWD/../../TstGenerator
 
 
-LIBS += -L$$PWD/../DocumentManager -lDocumentManager \
-        -L$$PWD/../picturesmodelview -lpicturesmodelview \
-        -L$$PWD/../TstGenerator -lTstGenerator
+LIBS += -L$$PWD/../../Documents -lDocuments \
+
+SERVICE_DIR =  $$PWD/service
+MOC_DIR = $$SERVICE_DIR
+OBJECTS_DIR = $$SERVICE_DIR
 
 DEFINES += TSTDOCGENERATOR1_LIBRARY
 

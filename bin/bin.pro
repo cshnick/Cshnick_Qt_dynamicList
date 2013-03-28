@@ -1,16 +1,14 @@
 QT += gui
 
-INCLUDEPATH += $$PWD/../DocumentManager \
-               $$PWD/../picturesmodelview \
-               $$PWD/../TstGenerator \
-               $$PWD/../TstDocGenerator1
-
+INCLUDEPATH += $$PWD/../Documents \
+               $$PWD/../ThumbnailManager \
+               $$PWD/../Plugins/TstGenerator \
+               $$PWD/../Plugins/TstDocGenerator1
 
 LIBS += \
-        -L$$PWD/../DocumentManager -lDocumentManager \
-        -L$$PWD/../picturesmodelview -lpicturesmodelview \
-        -L$$PWD/../TstGenerator -lTstGenerator \
-        -L$$PWD/../TstDocGenerator1 -lTstDocGenerator1
+        -L$$PWD/../Documents -lDocuments \
+        -L$$PWD/../Plugins/TstGenerator -lTstGenerator \
+        -L$$PWD/../Plugins/TstDocGenerator1 -lTstDocGenerator1
 
 SOURCES += \
     main.cpp
