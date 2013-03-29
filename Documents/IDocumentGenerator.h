@@ -28,7 +28,7 @@ public:
 } //namespace Documents
 
 Q_DECLARE_INTERFACE(Docs::IDocumentGenerator,
-                    "org.openSankore.DocumentGenerator")
+                    "org.openSankore.IDocumentGenerator")
 
 
 #endif // IDOCUMENTGENERATOR_H

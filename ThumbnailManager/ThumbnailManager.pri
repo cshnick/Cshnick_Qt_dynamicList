@@ -9,8 +9,6 @@
 
 DEFINES += THUMBNAILMANAGER_LIBRARY
 
-message(shlyapa $$OUT_PWD/dynpicturesmodel.cpp)
-
 #SRCDIR =
 SOURCES += $$PWD/ThumbnailManager.cpp
 

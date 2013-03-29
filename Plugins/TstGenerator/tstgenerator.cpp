@@ -24,3 +24,5 @@ QImage TstGenerator::imageForindex(int index) const
     return QImage(filePath);
 }
 
+Q_EXPORT_PLUGIN2(TstGenerator, TstGenerator)
+

@@ -1,10 +1,22 @@
 #include "PluginManager.h"
 
 #include <QtGui>
+#include <QtXml>
 
 static const QString pluginPath1 = "../Plugins/TstDocGenerator1";
 static const QString pluginPath2 = "../Plugins/TstGenerator";
 static const QString plugInfoSuffix = ".pinfo";
+
+static const QString tEnabled = "Enabled";
+static const QString tTopTag = "misc";
+static const QString tDisplayName = "displayname";
+static const QString tIconSource = "icon";
+static const QString tPluginPath = "pathToPlugin";
+
+static const QString argTrue = "true";
+static const QString argFalse = "false";
+
+static const QString dDefaultDisplayName = "Undefined pluglin";
 
 namespace Plugins {
 
@@ -28,8 +40,28 @@ public:
             Q_ASSERT(dir.exists());
             QFileInfoList pluginCandidates = dir.entryInfoList(QStringList() << suffixForCurrentPlatformPatern(), QDir::Files | QDir::Readable | QDir::NoDotAndDotDot | QDir::NoSymLinks);
             foreach (QFileInfo nextPlugin, pluginCandidates) {
-                const QString pInfo;
                 qDebug() << nextPlugin.fileName();
+                QPluginLoader loader(nextPlugin.absoluteFilePath());
+//                QFile file(nextPlugin.absoluteFilePath().replace("." + nextPlugin.completeSuffix(), plugInfoSuffix));
+//                file.open(QIODevice::WriteOnly);
+//                QXmlStreamWriter writer(&file);
+//                writer.setAutoFormatting(true);
+//                writer.writeStartDocument();
+//                writer.writeStartElement(tTopTag);
+//                writer.writeTextElement(tPluginPath, "true");
+//                writer.writeTextElement(tEnabled, "true");
+//                writer.writeTextElement(tDisplayName, "und");
+//                writer.writeTextElement(tIconSource, "und");
+
+//                writer.writeEndElement();
+//                writer.writeEndDocument();
+//                file.close();
+
+                loader.load();
+                qDebug() << "Plugin loaded" << loader.isLoaded();
+                loader.instance();
+                loader.unload();
+                qDebug() << "After unload" << loader.isLoaded();
             }
         }
 
@@ -70,7 +102,7 @@ public:
 private:
     PluginManager *q;
     QList<QUrl> mSearchDirs;
-    QList<QObject*> mPlugins;
+    QList<QPluginLoader> mPlugins;
 
 };
 
@@ -92,6 +124,7 @@ class PInfoHandlerPrivate
 {
     PInfoHandlerPrivate(PInfoHandler *pq)
         :q(pq)
+        , mEnabled(false)
     {
     }
 
@@ -109,6 +142,15 @@ class PInfoHandlerPrivate
 
             if (xmlDom.setContent(domString, true, &errorStr, &errorLine, &errorColumn)) {
                 mData = xmlDom;
+
+//                qDebug() << mData.firstChild().firstChildElement(tEnabled).text();
+                QString enabled = mData.documentElement().firstChildElement(tEnabled).text();
+                mEnabled = enabled.isEmpty() ? true : q->boolForString(enabled);
+                QString displayName = mData.documentElement().firstChildElement(tDisplayName).text();
+                mDisplayName = displayName.isEmpty() ? dDefaultDisplayName : displayName;
+                mIconSource = mData.documentElement().firstChildElement(tIconSource).text();
+                QString pluginFile = mData.documentElement().firstChildElement(tPluginPath).text();
+                mPluginFileName = QFileInfo(pluginFile).exists() ? pluginFile : QString();
             } else {
                 qDebug() << "Error reading content of " << fileName << endl
                          << "Error:"  << inFile.errorString()
@@ -122,44 +164,66 @@ class PInfoHandlerPrivate
         }
     }
 
-    void save()
+    void saveDom()
     {
-        Q_ASSERT(QFileInfo(mFileName).exists());
+        Q_ASSERT(QFileInfo(mPluginFileName).exists());
 
-        QFile stream(mFileName);
+        QFile stream(mPluginFileName);
         if (!stream.open(QIODevice::WriteOnly)) {
-            qDebug() << "Can't open " << mFileName << "for writing PInfoHandlerPrivate::save()";
+            qDebug() << "Can't open " << mPluginFileName << "for writing PInfoHandlerPrivate::saveDom()";
             return;
         }
         QTextStream txtStream(&stream);
 
         mData.save(txtStream, 0);
+        stream.close();
+    }
+
+    void saveMembers()
+    {
+        QFile file(mPluginFileName);
+        if (!file.open(QIODevice::WriteOnly)) {
+            qDebug() << "Can't open " << mPluginFileName << "for writing PInfoHandlerPrivate::saveMembers()";
+            return;
+        }
+
+        QXmlStreamWriter writer(&file);
+        writer.setAutoFormatting(true);
+        writer.writeStartDocument();
+        writer.writeStartElement(tTopTag);
+            writer.writeTextElement(tPluginPath, mPluginFileName);
+            writer.writeTextElement(tEnabled, q->stringForBool(mEnabled));
+            writer.writeTextElement(tDisplayName, mDisplayName);
+            writer.writeTextElement(tIconSource, mIconSource);
+        writer.writeEndElement();
+        writer.writeEndDocument();
+        file.close();
     }
 
 private:
     PInfoHandler *q;
     QDomDocument mData;
-    QString mFileName;
+    QString mPluginFileName;
+    bool mEnabled;
+    QString mDisplayName;
+    QString mIconSource;
 
     friend class PInfoHandler;
 };
 
-PInfoHandler::PInfoHandler(const QString &fileName)
+PInfoHandler::PInfoHandler()
     :d(new PInfoHandlerPrivate(this))
 {
-    d->mFileName = fileName;
 }
-PInfoHandler::PInfoHandler(const QString &fileName, const QDomDocument &data)
+PInfoHandler::PInfoHandler(const QDomDocument &data)
     :d(new PInfoHandlerPrivate(this))
 {
-    d->mFileName = fileName;
     d->mData = data;
 }
-PInfoHandler::PInfoHandler(const QString &fileName, const QString &data)
+PInfoHandler::PInfoHandler(const QString &dataFile)
     :d(new PInfoHandlerPrivate(this))
 {
-    d->mFileName = fileName;
-    d->parseFile(data);
+    d->parseFile(dataFile);
 }
 
 PInfoHandler::~PInfoHandler()
@@ -181,12 +245,22 @@ void PInfoHandler::setFileData(const QString &fileData)
 
 bool PInfoHandler::isValid() const
 {
-    return !d->mData.isNull() && QFileInfo(d->mFileName).exists();
+    return !d->mData.isNull() && QFileInfo(d->mPluginFileName).exists();
 }
 
 void PInfoHandler::save()
 {
-    d->save();
+    d->saveMembers();
+}
+
+QString PInfoHandler::stringForBool(bool pArgument)
+{
+    return pArgument ? argTrue : argFalse;
+}
+
+bool PInfoHandler::boolForString(const QString &pArgument)
+{
+    return (pArgument == argTrue) ? true : false;
 }
 
 } // namespace Plugins

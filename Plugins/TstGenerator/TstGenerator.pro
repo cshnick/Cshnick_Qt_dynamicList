@@ -4,10 +4,10 @@
 #
 #-------------------------------------------------
 
-message (thumbman $$PWD/../../ThumbnailManager)
-
 INCLUDEPATH += $$PWD/../../ThumbnailManager
 LIBS += -L$$PWD/../../Documents -lDocuments
+
+CONFIG += plugin
 
 TARGET = TstGenerator
 TEMPLATE = lib

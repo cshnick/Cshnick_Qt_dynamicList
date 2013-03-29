@@ -7,6 +7,7 @@
 class TSTGENERATORSHARED_EXPORT TstGenerator : public DPImageServicer
 {
     Q_OBJECT
+    Q_INTERFACES(DPImageServicer)
 
 public:
     TstGenerator(QObject *parent = 0);

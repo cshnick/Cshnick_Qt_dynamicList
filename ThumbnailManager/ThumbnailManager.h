@@ -220,4 +220,7 @@ private:
     friend class DPImageServicerPrivate;
 };
 
+Q_DECLARE_INTERFACE(DPImageServicer,
+                    "org.openSankore.DPImageServicer")
+
 #endif // THUMBNAILMANAGER_H

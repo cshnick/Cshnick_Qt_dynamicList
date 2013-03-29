@@ -372,5 +372,10 @@ QAction *TstDocGenerator1::associatedAction() const
     return action;
 }
 
+Plugins::PInfoHandler TstDocGenerator1::pluginMeta() const
+{
+    return Plugins::PInfoHandler("../Plugins/TstDocGenerator1/libTstDocGenerator1.pinfo");
+}
+
 Q_EXPORT_PLUGIN2(TstDocGenerator1, TstDocGenerator1)
 

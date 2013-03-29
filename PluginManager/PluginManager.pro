@@ -7,12 +7,15 @@
 TARGET = PluginManager
 TEMPLATE = lib
 
+QT += xml
+
 DEFINES += PLUGINMANAGER_LIBRARY
 
 SOURCES += PluginManager.cpp
 
 HEADERS += PluginManager.h\
-        PluginManager_global.h
+        PluginManager_global.h \
+    ICommonInterface.h
 
 unix:!symbian {
     maemo5 {
@@ -22,8 +25,6 @@ unix:!symbian {
     }
     INSTALLS += target
 }
-
-QT += xml
 
 SERVICE_DIR =  $$PWD/service
 MOC_DIR = $$SERVICE_DIR

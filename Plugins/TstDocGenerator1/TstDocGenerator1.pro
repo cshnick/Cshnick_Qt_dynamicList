@@ -12,7 +12,8 @@ LIB_ALIAS = lib
 
 INCLUDEPATH += $$PWD/../../Documents \
                $$PWD/../../ThumbnailManager \
-               $$PWD/../../TstGenerator
+               $$PWD/../../TstGenerator \
+               $$PWD/../../PluginManager
 
 
 LIBS += -L$$PWD/../../Documents -lDocuments \

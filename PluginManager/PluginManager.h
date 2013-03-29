@@ -4,7 +4,7 @@
 #include "PluginManager_global.h"
 #include <QObject>
 #include <QReadWriteLock>
-#include <QDomDocument>
+#include <QtXml/qdom.h>
 
 namespace Plugins {
 
@@ -37,15 +37,19 @@ class PInfoHandlerPrivate;
 class PLUGINMANAGERSHARED_EXPORT PInfoHandler
 {
 public:
-    PInfoHandler(const QString &fileName);
-    PInfoHandler(const QString &fileName, const QDomDocument &data);
-    PInfoHandler(const QString &fileName, const QString &data);
+    PInfoHandler();
+    PInfoHandler(const QDomDocument &data);
+    PInfoHandler(const QString &dataFile);
     ~PInfoHandler();
     void setData(const QDomDocument &pData);
     void setFileData(const QString &fileData);
     bool isValid() const;
     operator bool() const {return isValid();}
     void save();
+
+    static QString stringForBool(bool pArgument);
+    static bool boolForString(const QString &pArgument);
+
 
 private:
     PInfoHandlerPrivate *d;
