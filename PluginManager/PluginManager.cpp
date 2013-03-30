@@ -5,6 +5,7 @@
 
 static const QString pluginPath1 = "../Plugins/TstDocGenerator1";
 static const QString pluginPath2 = "../Plugins/TstGenerator";
+static const QString pluginInfoPath = "../Plugins";
 static const QString plugInfoSuffix = ".pinfo";
 
 static const QString tEnabled = "Enabled";
@@ -27,10 +28,8 @@ public:
     PluginManagerPrivate(PluginManager *pq)
         : q(pq)
     {
-        mSearchDirs.append(pluginPath1);
-        mSearchDirs.append(pluginPath2);
+        mSearchDirs.append(pluginInfoPath);
         loadPlugins();
-
     }
 
     void loadPlugins()
@@ -38,24 +37,27 @@ public:
         foreach (QUrl nextDir, mSearchDirs) {
             QDir dir(nextDir.toLocalFile());
             Q_ASSERT(dir.exists());
-            QFileInfoList pluginCandidates = dir.entryInfoList(QStringList() << suffixForCurrentPlatformPatern(), QDir::Files | QDir::Readable | QDir::NoDotAndDotDot | QDir::NoSymLinks);
-            foreach (QFileInfo nextPlugin, pluginCandidates) {
-                qDebug() << nextPlugin.fileName();
-                QPluginLoader loader(nextPlugin.absoluteFilePath());
-//                QFile file(nextPlugin.absoluteFilePath().replace("." + nextPlugin.completeSuffix(), plugInfoSuffix));
+//            for (int i = 0; i < 2; i++) {
+//                QFile file(i ? dir.absolutePath() + "/TstDocGenerator1.pinfo" : dir.absolutePath() + "/TstGenerator.pinfo");
 //                file.open(QIODevice::WriteOnly);
 //                QXmlStreamWriter writer(&file);
 //                writer.setAutoFormatting(true);
 //                writer.writeStartDocument();
 //                writer.writeStartElement(tTopTag);
-//                writer.writeTextElement(tPluginPath, "true");
+//                writer.writeTextElement(tPluginPath, i ? "TstDocGenerator1/libTstDocGenerator1" : "TstGenerator/TstGenerator");
 //                writer.writeTextElement(tEnabled, "true");
-//                writer.writeTextElement(tDisplayName, "und");
+//                writer.writeTextElement(tDisplayName, tPluginPath, i ? "TstDocGenerator1" : "TstGenerator");
 //                writer.writeTextElement(tIconSource, "und");
 
 //                writer.writeEndElement();
 //                writer.writeEndDocument();
 //                file.close();
+//            }
+            QFileInfoList pluginCandidates = dir.entryInfoList(QStringList() << "*"+plugInfoSuffix, QDir::Files | QDir::Readable | QDir::NoDotAndDotDot | QDir::NoSymLinks);
+            foreach (QFileInfo nextPlugin, pluginCandidates) {
+                qDebug() << nextPlugin.fileName();
+                QPluginLoader loader(nextPlugin.absoluteFilePath());
+
 
                 loader.load();
                 qDebug() << "Plugin loaded" << loader.isLoaded();
