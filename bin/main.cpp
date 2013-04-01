@@ -1,19 +1,23 @@
 #include <QtGui>
 
-#include "ThumbnailManager.h"
 #include "tstgenerator.h"
 #include "DocumentManager.h"
 #include "tstdocgenerator1.h"
 #include "PluginManager.h"
+#include "ICommonInterface.h"
+#include "IDocumentGenerator.h"
 
 int main(int argc, char *argv[])
 {
-    Plugins::PluginManager plugins;
-
     QApplication a(argc, argv);
 
-    //    QPixmapCache::setCacheLimit(2048);
-    DynPicturesManager manager(QUrl::fromLocalFile("/home/ilia/.local/share/data/Sankore/document/Sankore Document 2013-02-21 18-58-39.236"));
+    Plugins::PluginManager plugins;
+    QList<Plugins::ICommonInterface*> commonPlugins = Plugins::PluginManager::getObjects<Plugins::ICommonInterface*>();
+    QList<Docs::IDocumentGenerator*> documentGenerators = Plugins::PluginManager::getObjects<Docs::IDocumentGenerator*>();
+    QList<DPImageServicer*> servicers = Plugins::PluginManager::getObjects<DPImageServicer*>();
+
+     //    QPixmapCache::setCacheLimit(2048);
+
 //    manager.installPageGenerator(new TstGenerator);
 //    manager.setVisible(true);
     qDebug() << "started";

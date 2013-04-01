@@ -39,7 +39,7 @@ class THUMBNAILMANAGERSHARED_EXPORT DynPicturesManager : public QObject
 public:
     typedef QMap<QString, QImage*> EmptyPatterns;
 
-    DynPicturesManager(const QUrl &dataUrl, QObject *parent = 0);
+    DynPicturesManager(QObject *parent = 0);
     ~DynPicturesManager();
 
     void setVisible(bool pVisible);
@@ -86,6 +86,7 @@ public:
      DPListModel(QList<Page*> *pPageList, QObject *parent = 0);
     ~DPListModel();
     void setEmptyImagePatterns(DynPicturesManager::EmptyPatterns *pPatterns);
+    void clear();
 
 protected:
     int rowCount(const QModelIndex &parent) const;

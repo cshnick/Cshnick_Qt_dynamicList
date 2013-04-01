@@ -4,7 +4,9 @@
 #
 #-------------------------------------------------
 
-INCLUDEPATH += $$PWD/../../ThumbnailManager
+INCLUDEPATH += $$PWD/../../ThumbnailManager \
+               $$PWD/../../PluginManager
+
 LIBS += -L$$PWD/../../Documents -lDocuments
 
 CONFIG += plugin

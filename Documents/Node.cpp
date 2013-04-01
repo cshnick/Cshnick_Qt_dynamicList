@@ -58,6 +58,10 @@ CatalogNode *Node::parentNode()
 
 GeneratorNode *Node::getGeneratorNode()
 {
+    if (type() == DocumentGeneratorType) {
+        return static_cast<GeneratorNode*>(this);
+    }
+
     Node *nextParent = d->mParent;
     while (nextParent && nextParent->type() != DocumentGeneratorType) {
        nextParent = nextParent->d->mParent;

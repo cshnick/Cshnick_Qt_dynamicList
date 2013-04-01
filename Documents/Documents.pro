@@ -37,9 +37,9 @@ unix:!symbian {
    INSTALLS += target
 }
 
-PLUGINS_PATH = $$PWD/../Plugins
 INCLUDEPATH += \
-               $$PLUGINS_PATH/TstDocGenerator1
+               ../ThumbnailManager \
+               ../PluginManager
 
 
 LIBS += \

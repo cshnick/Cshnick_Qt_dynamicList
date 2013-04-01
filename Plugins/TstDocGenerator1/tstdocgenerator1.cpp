@@ -7,6 +7,8 @@
 #include <QFile>
 #include <QList>
 #include "Node.h"
+#include "ThumbnailManager.h"
+#include "PluginManager.h"
 
 static const QString tRDF = "RDF";
 static const QString tDescription = "Description";
@@ -185,6 +187,7 @@ public:
         , mUntitledDocumentsNode(0)
         , mModelsNode(0)
         , mTrashNode(0)
+        , mThumbServicer(0)
     {
         mRootPath = QUrl::fromLocalFile("/home/ilia/.local/share/data/Sankore/document");
     }
@@ -307,6 +310,7 @@ private:
     Docs::CatalogNode *mTrashNode;
 
     QUrl mRootPath;
+    DPImageServicer *mThumbServicer;
 
 
     friend class TstDocGenerator1;
@@ -354,6 +358,10 @@ void TstDocGenerator1::createNodeTree()
         nodeDir->addChild(docNode);
     }
 
+    QList<DPImageServicer*> availServicers = Plugins::PluginManager::getObjects<DPImageServicer*>();
+    if (availServicers.count()) {
+        d->mThumbServicer = availServicers.first();
+    }
 }
 
 Docs::GeneratorNode *TstDocGenerator1::rootNode() const
@@ -361,15 +369,9 @@ Docs::GeneratorNode *TstDocGenerator1::rootNode() const
     return d->mRootNode;
 }
 
-QAction *TstDocGenerator1::associatedAction() const
+DPImageServicer *TstDocGenerator1::thumbServicer()
 {
-    static QAction *action = 0;
-    if (!action) {
-        action = new QAction(icon(), displayText(), 0);
-        action->setCheckable(true);
-    }
-
-    return action;
+    return d->mThumbServicer;
 }
 
 Q_EXPORT_PLUGIN2(TstDocGenerator1, TstDocGenerator1)

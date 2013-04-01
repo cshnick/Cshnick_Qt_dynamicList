@@ -3,11 +3,13 @@
 
 #include "TstGenerator_global.h"
 #include "ThumbnailManager.h"
+#include "ICommonInterface.h"
+#include "PluginManager.h"
 
-class TSTGENERATORSHARED_EXPORT TstGenerator : public DPImageServicer
+class TSTGENERATORSHARED_EXPORT TstGenerator : public DPImageServicer, public Plugins::ICommonInterface
 {
     Q_OBJECT
-    Q_INTERFACES(DPImageServicer)
+    Q_INTERFACES(DPImageServicer Plugins::ICommonInterface)
 
 public:
     TstGenerator(QObject *parent = 0);

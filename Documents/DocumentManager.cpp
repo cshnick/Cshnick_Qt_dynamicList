@@ -1,11 +1,15 @@
 #include "DocumentManager.h"
 
+#include "PluginManager.h"
 #include "Node.h"
+#include "ThumbnailManager.h"
 #include "ExplorerModel.h"
 #include "ExplorerView.h"
-#include "tstdocgenerator1.h"
+#include "IDocumentGenerator.h"
+#include "ICommonInterface.h"
 
 #include <QtGui>
+static const QString expectedGeneratorName = "TstGenerator";
 
 namespace Docs {
 
@@ -20,13 +24,26 @@ public:
         , mPluginBox(0)
         , mPluginsMenu(0)
         , mSettings(0)
+        , mThumbsManager(0)
     {
         mSettings = new QSettings("settings", QSettings::IniFormat);
 
         mExplorerModel = new ExplorerModel();
         mExplorerView = new ExplorerView();
         mExplorerView->setModel(mExplorerModel);
+        mThumbsManager = new DynPicturesManager();
+        QList<DPImageServicer*> availServicers = Plugins::PluginManager::getObjects<DPImageServicer*>();
+
         setupUi();
+
+        QObject::connect(mExplorerView->selectionModel(), SIGNAL(currentChanged(QModelIndex,QModelIndex))
+                         , q, SLOT(selectionChanged_slot(QModelIndex,QModelIndex)));
+
+        QList<IDocumentGenerator*> availGenerators = Plugins::PluginManager::getObjects<IDocumentGenerator*>();
+        foreach (IDocumentGenerator *nextGenerator, availGenerators) {
+            nextGenerator->createNodeTree();
+            registerGenerator(nextGenerator);
+        }
     }
 
     ~DocumentManagerPrivate()
@@ -55,17 +72,50 @@ public:
 
     void setupUi()
     {
-        mTopWidget = new QWidget;
-        QVBoxLayout *mainLayout = new QVBoxLayout;
+        mTopWidget = new QSplitter();
 
+        QWidget *explorerContainer = new QWidget;
+
+        QVBoxLayout *mainLayout = new QVBoxLayout;
         mPluginsMenu = new QMenu("Plugins", 0);
+        QList<Plugins::ICommonInterface*> availInfos = Plugins::PluginManager::getObjects<Plugins::ICommonInterface*>();
+        foreach (Plugins::ICommonInterface *curPInfo, availInfos) {
+            Plugins::PInfoHandler metad = curPInfo->pluginMeta();
+            if (!metad) {
+                continue;
+            }
+            QAction *pluginAction = new QAction(metad.displayName(), mPluginsMenu);
+            pluginAction->setCheckable(true);
+            pluginAction->setChecked(metad.isEnabled());
+            mPluginsMenu->addAction(pluginAction);
+        }
+
         QPushButton *mPluginBox = new QPushButton("Plugins");
         mPluginBox->setMenu(mPluginsMenu);
         mainLayout->addWidget(mPluginBox);
         mainLayout->addWidget(mExplorerView);
         mainLayout->setContentsMargins(0, 0, 0, 0);
 
-        mTopWidget->setLayout(mainLayout);
+        explorerContainer->setLayout(mainLayout);
+
+        QSplitter *splitterTop = static_cast<QSplitter*>(mTopWidget);
+        splitterTop->addWidget(explorerContainer);
+        splitterTop->addWidget(mThumbsManager->widget());
+        splitterTop->setStretchFactor(0, 0);
+        splitterTop->setStretchFactor(1, 1);
+        mThumbsManager->widget()->setVisible(true);
+        splitterTop->setGeometry(0, 0, 1066, 600);
+    }
+
+    void selectionChanged_slot(const QModelIndex &pNew, const QModelIndex &pOld) {
+        Node *oldNode = mExplorerModel->nodeFromIndex(pOld);
+        Node *newNode = mExplorerModel->nodeFromIndex(pNew);
+
+        if (oldNode->getGeneratorNode() != newNode->getGeneratorNode()) {
+            mThumbsManager->installPageGenerator(newNode->getGeneratorNode()->docGenerator()->thumbServicer());
+        }
+
+
     }
 
 private:
@@ -78,6 +128,7 @@ private:
     QPushButton *mPluginBox;
     QMenu *mPluginsMenu;
     QSettings *mSettings;
+    DynPicturesManager *mThumbsManager;
 
     friend class DocumentManager;
 };
@@ -121,6 +172,11 @@ QWidget *DocumentManager::topWidget() const
 void DocumentManager::actionMenuChecked(bool checked)
 {
     d->mSettings->setValue("", checked);
+}
+
+void DocumentManager::selectionChanged_slot(const QModelIndex &pNew, const QModelIndex &pOld)
+{
+    d->selectionChanged_slot(pNew, pOld);
 }
 
 } //namespace Docs

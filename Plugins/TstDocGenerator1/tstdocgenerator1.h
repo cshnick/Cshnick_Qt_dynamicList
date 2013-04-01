@@ -4,12 +4,14 @@
 #include "TstDocGenerator1_global.h"
 
 #include <QUrl>
-//#include "DocumentManager.h"
+#include "ICommonInterface.h"
 #include "IDocumentGenerator.h"
 #include "Node.h"
 #include "DocumentManager.h"
+#include "ThumbnailManager.h"
 
 class QDomDocument;
+class DynPicturesManager;
 
 enum {
     DocumentNodeType = Docs::UserType
@@ -38,10 +40,10 @@ private:
 };
 
 class TstDocGenerator1Private;
-class TSTDOCGENERATOR1SHARED_EXPORT TstDocGenerator1 : public Docs::IDocumentGenerator
+class TSTDOCGENERATOR1SHARED_EXPORT TstDocGenerator1 : public Docs::IDocumentGenerator, public Plugins::ICommonInterface
 {
     Q_OBJECT
-    Q_INTERFACES(Docs::IDocumentGenerator)
+    Q_INTERFACES(Docs::IDocumentGenerator Plugins::ICommonInterface)
 
 public:
     TstDocGenerator1(QObject *parent = 0);
@@ -51,7 +53,7 @@ public:
 
     void createNodeTree();
     Docs::GeneratorNode *rootNode() const;
-    QAction *associatedAction() const;
+    DPImageServicer *thumbServicer();
 
 private:
     TstDocGenerator1Private *d;

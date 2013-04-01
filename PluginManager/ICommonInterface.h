@@ -9,7 +9,16 @@ namespace Plugins {
 class ICommonInterface
 {
 public:
-    virtual PInfoHandler pluginMeta() const = 0;
+    ICommonInterface()
+        : mLoader(0) {}
+    PInfoHandler pluginMeta() const {return mHandler;}
+    void setPluginMeta(const PInfoHandler &pHandler){mHandler = pHandler;}
+    void setLoader(QPluginLoader *loader) {mLoader = loader;}
+    QPluginLoader *loader() {return mLoader;}
+
+private:
+    Plugins::PInfoHandler mHandler;
+    QPluginLoader *mLoader;
 };
 
 } // namespace Plugins

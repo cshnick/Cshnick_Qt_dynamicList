@@ -4,6 +4,7 @@
 #include "DocumentManager_global.h"
 #include <QObject>
 #include <QIcon>
+#include "ThumbnailManager.h"
 
 #include "Node.h"
 
@@ -21,7 +22,7 @@ public:
 
     virtual void createNodeTree() = 0;
     virtual GeneratorNode *rootNode() const = 0;
-    virtual QAction *associatedAction() const = 0;
+    virtual DPImageServicer *thumbServicer() = 0;
 
 };
 

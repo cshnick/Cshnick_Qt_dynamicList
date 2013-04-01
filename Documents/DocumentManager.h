@@ -7,6 +7,7 @@
 #include <QIcon>
 #include <QtPlugin>
 #include <QAction>
+#include <QModelIndex>
 
 namespace Docs {
 
@@ -37,6 +38,7 @@ public:
 
 private slots:
     void actionMenuChecked(bool checked);
+    void selectionChanged_slot(const QModelIndex &pNew, const QModelIndex &pOld);
 
 private:
 

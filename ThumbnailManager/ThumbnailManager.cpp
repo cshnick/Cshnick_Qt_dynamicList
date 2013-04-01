@@ -38,9 +38,8 @@ Q_DECLARE_METATYPE(Page*)
 class DynPicturesManagerlPrivate
 {
 public:
-    DynPicturesManagerlPrivate(DynPicturesManager *pq, const QUrl &dataUrl)
+    DynPicturesManagerlPrivate(DynPicturesManager *pq)
         : q(pq)
-        , storageUrl(dataUrl)
         , mModel(0)
         , mDelegate(0)
         , mGeneratorThread(0)
@@ -164,20 +163,33 @@ public:
 
     void installPageGenerator(DPImageServicer *generator)
     {
+        if (!generator) {
+            return;
+        }
+
+//        if (mGeneratorThread) {
+//            delete mGeneratorThread;
+//        }
+        mModel->clear();
+        DPImageServicer *oldGenerator = mGeneratorThread;
+
         mGeneratorThread = generator;
         if (mGeneratorThread) {
 
             createPages();
 
             foreach (DPListView *view, mRegisteredViews) {
-                QObject::disconnect(view, SIGNAL(sendRequest(DPImageRequest)), mGeneratorThread, SLOT(replyOnRequest(DPImageRequest)));
+                QObject::disconnect(view, SIGNAL(sendRequest(DPImageRequest)), oldGenerator, SLOT(replyOnRequest(DPImageRequest)));
                 QObject::connect(view, SIGNAL(sendRequest(DPImageRequest)), mGeneratorThread, SLOT(replyOnRequest(DPImageRequest)));
             }
+
             QObject::connect(mGeneratorThread, SIGNAL(sendReply(DPImageReply)), mModel, SLOT(reactOnImageReply(DPImageReply)));
             QObject::connect(q, SIGNAL(requestCleanImageServicerQueue()), mGeneratorThread, SLOT(replyCleanImageServicerQueue()));
 
             mGeneratorThread->start(QThread::LowPriority);
         }
+
+
     }
 
     void setupUi()
@@ -190,6 +202,7 @@ public:
 
         mCentralWidget = new QWidget();
         QVBoxLayout *mainLayer = new QVBoxLayout();
+        mainLayer->setContentsMargins(2, 2, 2, 2);
 
         QSplitter *widgetsSplitter = new QSplitter(Qt::Horizontal);
         widgetsSplitter->addWidget(mThumbView);
@@ -198,6 +211,7 @@ public:
         widgetsSplitter->setStretchFactor(1, 1);
 
         QHBoxLayout *sliderLayout = new QHBoxLayout();
+        sliderLayout->setContentsMargins(0, 0, 0, 0);
         sliderLayout->addSpacerItem(new QSpacerItem(300, 0, QSizePolicy::Expanding));
         QPushButton *magicButton = new QPushButton("Don't push");
         QObject::connect(magicButton, SIGNAL(clicked()), q, SLOT(cleanMemory()));
@@ -214,6 +228,7 @@ public:
 
         mainLayer->addWidget(widgetsSplitter);
         mainLayer->addLayout(sliderLayout);
+
 
         mCentralWidget->setLayout(mainLayer);
         mCentralWidget->setGeometry(0, 0, 800, 600);
@@ -262,9 +277,9 @@ private:
 int DynPicturesManagerlPrivate::mCellSize = Globals::defaultCellSize;
 int DynPicturesManagerlPrivate::mMaxIconSize = Globals::defaultCellSize;
 
-DynPicturesManager::DynPicturesManager(const QUrl &dataUrl, QObject *parent)
+DynPicturesManager::DynPicturesManager(QObject *parent)
     :QObject(parent)
-    , d(new DynPicturesManagerlPrivate(this, dataUrl))
+    , d(new DynPicturesManagerlPrivate(this))
 {
     qRegisterMetaType<DPImageRequest>("DPImageRequest");
     qRegisterMetaType<DPImageReply>("DPImageReply");
@@ -330,9 +345,9 @@ QString DynPicturesManager::sizeToString(const QSize &pSize)
 
 bool DynPicturesManager::eventFilter(QObject *obj, QEvent *event)
 {
-    if (obj == d->mSlider && event->type() == QEvent::MouseButtonRelease) {
-        emit sliderReleased();
-    }
+//    if (d && obj == d->mSlider && event->type() == QEvent::MouseButtonRelease) {
+//        emit sliderReleased();
+//    }
 
     return QObject::eventFilter(obj, event);
 }
@@ -544,6 +559,11 @@ public:
         }
         emptyImagePatterns->clear();
     }
+    void clear()
+    {
+        qDeleteAll(*pageList);
+        pageList->clear();
+    }
 
 private:
     QList<Page*> *pageList;
@@ -568,6 +588,13 @@ DPListModel::~DPListModel()
 void DPListModel::setEmptyImagePatterns(DynPicturesManager::EmptyPatterns *pPatterns)
 {
     d->emptyImagePatterns = pPatterns;
+}
+
+void DPListModel::clear()
+{
+    beginResetModel();
+    d->clear();
+    endResetModel();
 }
 
 int DPListModel::rowCount(const QModelIndex &parent) const
