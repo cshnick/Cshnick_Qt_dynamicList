@@ -11,17 +11,20 @@ TstGenerator::TstGenerator(QObject *parent)
 
 qint64 TstGenerator::imageCount() const
 {
-    QDir dir(storageUrl.toLocalFile());
+    QDir dir(data(Globals::InternalPathRole).toString());
     return dir.entryInfoList(QStringList() << "*.thumbnail.jpg", QDir::Files | QDir::NoDotAndDotDot, QDir::Name).count();
 }
 
 QImage TstGenerator::imageForindex(int index) const
 {
     QString fileName = QString("page%1.thumbnail.jpg").arg(index, 3, 10, QLatin1Char('0'));
-    QString filePath = storageUrl.toLocalFile() + "/" + fileName;
-    Q_ASSERT(QFileInfo(filePath).exists());
+    QString filePath = data(Globals::InternalPathRole).toString() + "/" + fileName;
 
-    return QImage(filePath);
+    if (QFileInfo(filePath).exists()) {
+       return QImage(filePath);
+    }
+
+    return QImage();
 }
 
 Q_EXPORT_PLUGIN2(TstGenerator, TstGenerator)

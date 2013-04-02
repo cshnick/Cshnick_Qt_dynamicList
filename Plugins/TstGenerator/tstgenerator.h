@@ -12,6 +12,7 @@ class TSTGENERATORSHARED_EXPORT TstGenerator : public DPImageServicer, public Pl
     Q_INTERFACES(DPImageServicer Plugins::ICommonInterface)
 
 public:
+
     TstGenerator(QObject *parent = 0);
 
     qint64 imageCount() const;

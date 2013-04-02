@@ -32,8 +32,6 @@ public:
         mExplorerView = new ExplorerView();
         mExplorerView->setModel(mExplorerModel);
         mThumbsManager = new DynPicturesManager();
-        QList<DPImageServicer*> availServicers = Plugins::PluginManager::getObjects<DPImageServicer*>();
-
         setupUi();
 
         QObject::connect(mExplorerView->selectionModel(), SIGNAL(currentChanged(QModelIndex,QModelIndex))
@@ -57,7 +55,7 @@ public:
 
     }
     void registerGenerator(IDocumentGenerator *pGenerator) {
-        if (mRegisteredGenerators.contains(pGenerator)) {
+        if (mRegisteredGenerators.contains(pGenerator) && !pGenerator) {
             return;
         }
         mRegisteredGenerators.append(pGenerator);
@@ -115,7 +113,9 @@ public:
             mThumbsManager->installPageGenerator(newNode->getGeneratorNode()->docGenerator()->thumbServicer());
         }
 
-
+        newNode->getGeneratorNode()->docGenerator()->onNodeChanged(newNode, oldNode);
+        mThumbsManager->reload();
+        emit q->nodeChanged(newNode, oldNode);
     }
 
 private:

@@ -136,6 +136,7 @@ private:
 struct DocumentNodePrivate
 {
     MetaDataHandler hl;
+    QUrl mOwnDir;
 
     friend class DocumentNode;
 };
@@ -175,6 +176,16 @@ bool DocumentNode::isCatalog() const
 void DocumentNode::setMetadata(const QDomDocument &data)
 {
     d->hl = MetaDataHandler(data);
+}
+
+void DocumentNode::setOwnDir(const QUrl &pDir)
+{
+    d->mOwnDir = pDir;
+}
+
+QUrl DocumentNode::ownDir() const
+{
+    return d->mOwnDir;
 }
 
 class TstDocGenerator1Private
@@ -354,6 +365,7 @@ void TstDocGenerator1::createNodeTree()
         Docs::CatalogNode *nodeDir = d->nodeFromDir(hl.queryDir());
         DocumentNode *docNode = new DocumentNode;
         docNode->setMetadata(metaData);
+        docNode->setOwnDir(QUrl::fromLocalFile(fullPath));
 
         nodeDir->addChild(docNode);
     }
@@ -372,6 +384,20 @@ Docs::GeneratorNode *TstDocGenerator1::rootNode() const
 DPImageServicer *TstDocGenerator1::thumbServicer()
 {
     return d->mThumbServicer;
+}
+
+void TstDocGenerator1::onNodeChanged(Docs::Node *pCurrent, Docs::Node *pPrevious)
+{
+    Q_UNUSED(pPrevious)
+    if (pCurrent->type() == DocumentNodeType) {
+        if (d->mThumbServicer) {
+            DocumentNode *curDocNode = static_cast<DocumentNode*>(pCurrent);
+            d->mThumbServicer->setData(curDocNode->ownDir().toLocalFile(), Globals::InternalPathRole);
+
+            qDebug() << "internal path role" << d->mThumbServicer->data(Globals::InternalPathRole).toString();
+
+        }
+    }
 }
 
 Q_EXPORT_PLUGIN2(TstDocGenerator1, TstDocGenerator1)

@@ -30,6 +30,11 @@ namespace Globals {
     const int saveMemoryMultipler = 2; //Allways save current viewport and cache indexes above and under the visible area;
                                        //save visible QModelIndex count * saveMemoryMultipler on top and on the bottom
     const bool useMemoryCleaner = true;
+
+    enum Role {
+        InternalPathRole = 0
+        , CustomRole = 100
+    };
 }
 
 class THUMBNAILMANAGERSHARED_EXPORT DynPicturesManager : public QObject
@@ -46,6 +51,8 @@ public:
     DPListView *view(int index = 0) const;
     QWidget *widget() const;
     void installPageGenerator(DPImageServicer *generator);
+    void changeServicerData(const QVariant &newData, int role = Globals::CustomRole);
+    void reload();
 
     static void setCellSize(int newSize);
     static QSize gridSize();
@@ -204,6 +211,9 @@ public:
 
     virtual QImage imageForindex(int index) const;
     virtual qint64 imageCount() const = 0;
+
+    QVariant data(int role = Globals::CustomRole) const;
+    void setData(QVariant data, int role = Globals::CustomRole);
 
 protected:
     void run();

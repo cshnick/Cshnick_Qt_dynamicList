@@ -23,6 +23,10 @@ public:
     virtual void createNodeTree() = 0;
     virtual GeneratorNode *rootNode() const = 0;
     virtual DPImageServicer *thumbServicer() = 0;
+    virtual void onNodeChanged(Node *pCurrent, Node *pPrevious);
+
+private slots:
+    void onNodeChanged_slot(Node *pCurrent, Node *pPrevious); // will be connected automatically
 
 };
 

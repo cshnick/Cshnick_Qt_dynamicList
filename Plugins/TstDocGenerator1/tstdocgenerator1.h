@@ -31,6 +31,8 @@ public:
     QIcon displayIcon() const;
     bool isCatalog() const;
     void setMetadata(const QDomDocument &data);
+    void setOwnDir(const QUrl &pDir);
+    QUrl ownDir() const;
 
 private:
     DocumentNodePrivate *d;
@@ -54,6 +56,7 @@ public:
     void createNodeTree();
     Docs::GeneratorNode *rootNode() const;
     DPImageServicer *thumbServicer();
+    void onNodeChanged(Docs::Node *pCurrent, Docs::Node *pPrevious);
 
 private:
     TstDocGenerator1Private *d;

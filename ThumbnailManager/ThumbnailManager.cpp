@@ -22,8 +22,9 @@ struct Page
                 pix = 0;
             }
             pix = img;
-            w = img->width();
-            h = img->height();
+
+            w = pix ? pix->width() : 0;
+            h = pix ? pix->height() : 0;
         }
     }
 
@@ -188,8 +189,19 @@ public:
 
             mGeneratorThread->start(QThread::LowPriority);
         }
+    }
+    void changeServicerData(const QVariant &newData, int role)
+    {
+        if (mGeneratorThread) {
+            mGeneratorThread->setData(newData, role);
+        }
+    }
 
-
+    void reload()
+    {
+        mModel->clear();
+        createPages();
+        emit q->sliderReleased();
     }
 
     void setupUi()
@@ -313,6 +325,16 @@ void DynPicturesManager::installPageGenerator(DPImageServicer *generator)
     d->installPageGenerator(generator);
 }
 
+void DynPicturesManager::changeServicerData(const QVariant &newData, int role)
+{
+    d->changeServicerData(newData, role);
+}
+
+void DynPicturesManager::reload()
+{
+    d->reload();
+}
+
 void DynPicturesManager::setCellSize(int newSize)
 {
     DynPicturesManagerlPrivate::mCellSize = newSize;
@@ -345,9 +367,9 @@ QString DynPicturesManager::sizeToString(const QSize &pSize)
 
 bool DynPicturesManager::eventFilter(QObject *obj, QEvent *event)
 {
-//    if (d && obj == d->mSlider && event->type() == QEvent::MouseButtonRelease) {
-//        emit sliderReleased();
-//    }
+    if (d && obj == d->mSlider && event->type() == QEvent::MouseButtonRelease) {
+        emit sliderReleased();
+    }
 
     return QObject::eventFilter(obj, event);
 }
@@ -645,8 +667,9 @@ void DPListModel::reactOnImageReply(DPImageReply reply)
     int indexRow = reply.pageNo;
     if (d->pageList && indexRow != -1 && indexRow < d->pageList->count()) {
         Page *curPage = d->pageList->at(indexRow);
-        Q_ASSERT(curPage);
-        curPage->setImage(new QImage(reply.image));
+        if (!reply.image.isNull()) {
+            curPage->setImage(new QImage(reply.image));
+        }
         QModelIndex curIndex  = index(indexRow);
         emit dataChanged(curIndex, curIndex);
     }
@@ -1029,7 +1052,7 @@ class DPImageServicerPrivate
                 //                mMutex.lock();
                 QImage image = q->imageForindex(curReq.pageNo);
                 //                mMutex.unlock();
-                if (image.size() != QSize(curReq.w, curReq.h)) {
+                if (!image.isNull() && image.size() != QSize(curReq.w, curReq.h)) {
                     image = image.scaled(curReq.w, curReq.h, Qt::KeepAspectRatio, Globals::defTRansformationMode);
                 }
 
@@ -1049,6 +1072,7 @@ private:
     bool abort;
     DPImageServicer *q;
     QVector<DPImageRequest> requests;
+    QMap<int, QVariant> mData;
 
     friend class DPImageServicer;
 };
@@ -1070,6 +1094,17 @@ DPImageServicer::~DPImageServicer()
 void DPImageServicer::addRequest(DPImageRequest req)
 {
     d->addRequest(req);
+}
+
+
+QVariant DPImageServicer::data(int role) const
+{
+    return d->mData.value(role, QVariant());
+}
+
+void DPImageServicer::setData(QVariant data, int role)
+{
+    d->mData.insert(role, data);
 }
 
 QImage DPImageServicer::imageForindex(int index) const

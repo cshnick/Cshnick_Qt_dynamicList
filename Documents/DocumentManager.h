@@ -21,6 +21,7 @@ enum Role {
 class IDocumentGenerator;
 class CatalogNode;
 class GeneratorNode;
+class Node;
 
 class DocumentManagerPrivate;
 class DOCUMENTSSHARED_EXPORT DocumentManager : public QObject
@@ -35,6 +36,9 @@ public:
     void print();
     void setVisible(bool pVisible);
     QWidget *topWidget() const;
+
+signals:
+    void nodeChanged(Node *pCurrent, Node *pPrevious);
 
 private slots:
     void actionMenuChecked(bool checked);
