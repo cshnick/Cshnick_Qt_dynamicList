@@ -2,7 +2,7 @@
 #define ICOMMONINTERFACE_H
 
 #include <QtPlugin>
-#include "PluginManager.h"
+#include "PInfoHandler.h"
 
 namespace Plugins {
 

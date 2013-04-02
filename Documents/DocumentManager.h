@@ -8,6 +8,10 @@
 #include <QtPlugin>
 #include <QAction>
 #include <QModelIndex>
+#include "globals.h"
+QT_BEGIN_NAMESPACE
+class QPluginLoader;
+QT_END_NAMESPACE
 
 namespace Docs {
 
@@ -43,6 +47,7 @@ signals:
 private slots:
     void actionMenuChecked(bool checked);
     void selectionChanged_slot(const QModelIndex &pNew, const QModelIndex &pOld);
+    void onPluginDynamiclyLoaded(QPluginLoader *newLoader);
 
 private:
 

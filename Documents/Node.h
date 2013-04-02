@@ -6,7 +6,6 @@
 #include "DocumentManager.h"
 #include <QObject>
 #include <QMetaType>
-#include <QIcon>
 
 namespace Docs {
 

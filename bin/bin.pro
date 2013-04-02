@@ -4,7 +4,8 @@ INCLUDEPATH += $$PWD/../Documents \
                $$PWD/../ThumbnailManager \
                $$PWD/../Plugins/TstGenerator \
                $$PWD/../Plugins/TstDocGenerator1 \
-               $$PWD/../PluginManager
+               $$PWD/../PluginManager \
+               $$PWD/../Globals
 
 LIBS += \
         -L$$PWD/../Documents -lDocuments \

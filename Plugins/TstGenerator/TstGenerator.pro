@@ -5,7 +5,8 @@
 #-------------------------------------------------
 
 INCLUDEPATH += $$PWD/../../ThumbnailManager \
-               $$PWD/../../PluginManager
+               $$PWD/../../PluginManager \
+               $$PWD/../../Globals
 
 LIBS += -L$$PWD/../../Documents -lDocuments
 

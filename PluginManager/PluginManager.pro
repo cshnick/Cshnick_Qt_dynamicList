@@ -11,11 +11,13 @@ QT += xml
 
 DEFINES += PLUGINMANAGER_LIBRARY
 
-SOURCES += PluginManager.cpp
+SOURCES += PluginManager.cpp \
+    PInfoHandler.cpp
 
 HEADERS += PluginManager.h\
         PluginManager_global.h \
-    ICommonInterface.h
+    ICommonInterface.h \
+    PInfoHandler.h
 
 unix:!symbian {
     maemo5 {
@@ -25,6 +27,9 @@ unix:!symbian {
     }
     INSTALLS += target
 }
+
+INCLUDEPATH +=  \
+                ../Globals
 
 SERVICE_DIR =  $$PWD/service
 MOC_DIR = $$SERVICE_DIR

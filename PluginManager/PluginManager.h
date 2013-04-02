@@ -5,20 +5,18 @@
 
 #include <QObject>
 #include <QReadWriteLock>
-#include <QtXml/qdom.h>
-#include <QPointer>
 #include <QPluginLoader>
+QT_BEGIN_NAMESPACE
+class QDomDocument;
+QT_END_NAMESPACE
 
 namespace Plugins {
-
 
 enum Platform {
    linuxOS
     ,macosx
     ,windowsOS
 };
-
-
 
 class PInfoHandler;
 
@@ -54,6 +52,10 @@ public:
     }
 
     static bool removeObject(QObject *object);
+    static bool loadPlugin(const PInfoHandler &metaData);
+
+signals:
+    void pluginDynamiclyLoaded(QPluginLoader *newPluginLoader);
 
 private:
     PluginManagerPrivate *d;
@@ -63,38 +65,6 @@ private:
     friend class PluginManagerPrivate;
 };
 
-class PInfoHandlerPrivate;
-class PLUGINMANAGERSHARED_EXPORT PInfoHandler
-{
-public:
-    PInfoHandler();
-    PInfoHandler(const PInfoHandler &other);
-    PInfoHandler(const QDomDocument &data);
-    PInfoHandler(const QString &dataFile);
-    ~PInfoHandler();
-    void setData(const QDomDocument &pData);
-    void setFileData(const QString &fileData);
-    void setEnabled(bool pEnabled);
-    bool isEnabled() const;
-    bool isValid() const;
-    operator bool() const {return isValid();}
-    void save();
-    QString absolutePluginPath() const;
-    QString displayName() const;
-
-    static QString stringForBool(bool pArgument);
-    static bool boolForString(const QString &pArgument);
-    PInfoHandler &operator=(const PInfoHandler &other);
-
-
-private:
-    PInfoHandlerPrivate *d;
-
-    friend class PInfoHandlerPrivate;
-};
 } //namespace Plugins
-
-Q_DECLARE_METATYPE(Plugins::PInfoHandler)
-
 
 #endif // PLUGINMANAGER_H

@@ -11,6 +11,7 @@
 #include <QThread>
 #include <QMutex>
 #include <QFlags>
+#include "globals.h"
 
 class DynPicturesManagerlPrivate;
 class DPListModelPrivate;
@@ -20,22 +21,6 @@ class DPImageGenerator;
 class DPImageServicer;
 struct DPImageRequest;
 struct DPImageReply;
-
-namespace Globals {
-    const int defaultCellSize = 80;
-    const int maxCellSize = 250;
-    const int pageRole = Qt::UserRole + 1;
-    const Qt::TransformationMode defTRansformationMode = Qt::SmoothTransformation;
-    const int cleanerTimerInterval = 10000; //10 seconds
-    const int saveMemoryMultipler = 2; //Allways save current viewport and cache indexes above and under the visible area;
-                                       //save visible QModelIndex count * saveMemoryMultipler on top and on the bottom
-    const bool useMemoryCleaner = true;
-
-    enum Role {
-        InternalPathRole = 0
-        , CustomRole = 100
-    };
-}
 
 class THUMBNAILMANAGERSHARED_EXPORT DynPicturesManager : public QObject
 {

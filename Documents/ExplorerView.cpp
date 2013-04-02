@@ -2,8 +2,6 @@
 
 #include <QTreeView>
 #include <QHeaderView>
-//#include <QtGui>
-
 
 namespace Docs {
 

@@ -39,7 +39,8 @@ unix:!symbian {
 
 INCLUDEPATH += \
                ../ThumbnailManager \
-               ../PluginManager
+               ../PluginManager \
+               ../Globals
 
 
 LIBS += \

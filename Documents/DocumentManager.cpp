@@ -1,6 +1,14 @@
 #include "DocumentManager.h"
 
+#include <QPushButton>
+#include <QSplitter>
+#include <QVBoxLayout>
+#include <QMenu>
+#include <QAction>
+#include <QDebug>
+
 #include "PluginManager.h"
+#include "PInfoHandler.h"
 #include "Node.h"
 #include "ThumbnailManager.h"
 #include "ExplorerModel.h"
@@ -8,7 +16,6 @@
 #include "IDocumentGenerator.h"
 #include "ICommonInterface.h"
 
-#include <QtGui>
 static const QString expectedGeneratorName = "TstGenerator";
 
 namespace Docs {
@@ -23,11 +30,8 @@ public:
         , mTopWidget(0)
         , mPluginBox(0)
         , mPluginsMenu(0)
-        , mSettings(0)
         , mThumbsManager(0)
     {
-        mSettings = new QSettings("settings", QSettings::IniFormat);
-
         mExplorerModel = new ExplorerModel();
         mExplorerView = new ExplorerView();
         mExplorerView->setModel(mExplorerModel);
@@ -36,12 +40,15 @@ public:
 
         QObject::connect(mExplorerView->selectionModel(), SIGNAL(currentChanged(QModelIndex,QModelIndex))
                          , q, SLOT(selectionChanged_slot(QModelIndex,QModelIndex)));
+        QObject::connect(Plugins::PluginManager::instance(), SIGNAL(pluginDynamiclyLoaded(QPluginLoader*))
+                         , q, SLOT(onPluginDynamiclyLoaded(QPluginLoader*)));
 
         QList<IDocumentGenerator*> availGenerators = Plugins::PluginManager::getObjects<IDocumentGenerator*>();
         foreach (IDocumentGenerator *nextGenerator, availGenerators) {
             nextGenerator->createNodeTree();
             registerGenerator(nextGenerator);
         }
+
     }
 
     ~DocumentManagerPrivate()
@@ -84,7 +91,10 @@ public:
             QAction *pluginAction = new QAction(nextMeta.displayName(), mPluginsMenu);
             pluginAction->setCheckable(true);
             pluginAction->setChecked(nextMeta.isEnabled());
+            pluginAction->setData(QVariant::fromValue(nextMeta));
+            QObject::connect(pluginAction, SIGNAL(toggled(bool)), q, SLOT(actionMenuChecked(bool)));
             mPluginsMenu->addAction(pluginAction);
+
         }
 
         QPushButton *mPluginBox = new QPushButton("Plugins");
@@ -117,6 +127,12 @@ public:
         emit q->nodeChanged(newNode, oldNode);
     }
 
+    void onPluginDynamiclyLoaded(QPluginLoader *newLoader) {
+        IDocumentGenerator *generatorCandidate = qobject_cast<IDocumentGenerator*>(newLoader->instance());
+        generatorCandidate->createNodeTree();
+        registerGenerator(generatorCandidate);
+    }
+
 private:
     DocumentManager *q;
 
@@ -126,7 +142,6 @@ private:
     QWidget *mTopWidget;
     QPushButton *mPluginBox;
     QMenu *mPluginsMenu;
-    QSettings *mSettings;
     DynPicturesManager *mThumbsManager;
 
     friend class DocumentManager;
@@ -170,12 +185,26 @@ QWidget *DocumentManager::topWidget() const
 
 void DocumentManager::actionMenuChecked(bool checked)
 {
-    d->mSettings->setValue("", checked);
+    QAction *senderAction = qobject_cast<QAction*>(sender());
+    if (senderAction) {
+        Plugins::PInfoHandler hl = senderAction->data().value<Plugins::PInfoHandler>();
+        hl.setEnabled(checked);
+        hl.save();
+        if (checked && !Plugins::PluginManager::loadPlugin(hl)) {
+            qDebug() << "Plugin is not being loaded";
+        }
+
+    }
 }
 
 void DocumentManager::selectionChanged_slot(const QModelIndex &pNew, const QModelIndex &pOld)
 {
     d->selectionChanged_slot(pNew, pOld);
+}
+
+void DocumentManager::onPluginDynamiclyLoaded(QPluginLoader *newLoader)
+{
+    d->onPluginDynamiclyLoaded(newLoader);
 }
 
 } //namespace Docs
