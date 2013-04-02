@@ -76,15 +76,14 @@ public:
 
         QVBoxLayout *mainLayout = new QVBoxLayout;
         mPluginsMenu = new QMenu("Plugins", 0);
-        QList<Plugins::ICommonInterface*> availInfos = Plugins::PluginManager::getObjects<Plugins::ICommonInterface*>();
-        foreach (Plugins::ICommonInterface *curPInfo, availInfos) {
-            Plugins::PInfoHandler metad = curPInfo->pluginMeta();
-            if (!metad) {
+        Plugins::PluginManager::PInfoList allInfos = Plugins::PluginManager::pluginMetas();
+        foreach (Plugins::PInfoHandler nextMeta, allInfos) {
+            if (!nextMeta) {
                 continue;
             }
-            QAction *pluginAction = new QAction(metad.displayName(), mPluginsMenu);
+            QAction *pluginAction = new QAction(nextMeta.displayName(), mPluginsMenu);
             pluginAction->setCheckable(true);
-            pluginAction->setChecked(metad.isEnabled());
+            pluginAction->setChecked(nextMeta.isEnabled());
             mPluginsMenu->addAction(pluginAction);
         }
 

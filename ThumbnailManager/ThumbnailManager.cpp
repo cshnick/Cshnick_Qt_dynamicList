@@ -367,8 +367,10 @@ QString DynPicturesManager::sizeToString(const QSize &pSize)
 
 bool DynPicturesManager::eventFilter(QObject *obj, QEvent *event)
 {
-    if (d && obj == d->mSlider && event->type() == QEvent::MouseButtonRelease) {
-        emit sliderReleased();
+    if (d) {
+        if (obj == d->mSlider && event->type() == QEvent::MouseButtonRelease) {
+            emit sliderReleased();
+        }
     }
 
     return QObject::eventFilter(obj, event);

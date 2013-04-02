@@ -18,6 +18,8 @@ enum Platform {
     ,windowsOS
 };
 
+
+
 class PInfoHandler;
 
 class PluginManagerPrivate;
@@ -91,5 +93,8 @@ private:
     friend class PInfoHandlerPrivate;
 };
 } //namespace Plugins
+
+Q_DECLARE_METATYPE(Plugins::PInfoHandler)
+
 
 #endif // PLUGINMANAGER_H

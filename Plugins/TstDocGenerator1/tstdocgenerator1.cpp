@@ -389,15 +389,18 @@ DPImageServicer *TstDocGenerator1::thumbServicer()
 void TstDocGenerator1::onNodeChanged(Docs::Node *pCurrent, Docs::Node *pPrevious)
 {
     Q_UNUSED(pPrevious)
-    if (pCurrent->type() == DocumentNodeType) {
-        if (d->mThumbServicer) {
-            DocumentNode *curDocNode = static_cast<DocumentNode*>(pCurrent);
-            d->mThumbServicer->setData(curDocNode->ownDir().toLocalFile(), Globals::InternalPathRole);
-
-            qDebug() << "internal path role" << d->mThumbServicer->data(Globals::InternalPathRole).toString();
-
-        }
+    if (!d->mThumbServicer) {
+        return;
     }
+    QString data;
+
+    if (pCurrent->type() == DocumentNodeType) {
+        DocumentNode *curDocNode = static_cast<DocumentNode*>(pCurrent);
+        data = curDocNode->ownDir().toLocalFile();
+    }
+
+    d->mThumbServicer->setData(data, Globals::InternalPathRole);
+    qDebug() << "internal path role" << d->mThumbServicer->data(Globals::InternalPathRole).toString();
 }
 
 Q_EXPORT_PLUGIN2(TstDocGenerator1, TstDocGenerator1)

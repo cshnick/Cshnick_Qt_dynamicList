@@ -1,7 +1,7 @@
 #ifndef ICOMMONINTERFACE_H
 #define ICOMMONINTERFACE_H
 
-#include "QtPlugin"
+#include <QtPlugin>
 #include "PluginManager.h"
 
 namespace Plugins {
@@ -17,7 +17,7 @@ public:
     QPluginLoader *loader() {return mLoader;}
 
 private:
-    Plugins::PInfoHandler mHandler;
+    PInfoHandler mHandler;
     QPluginLoader *mLoader;
 };
 
