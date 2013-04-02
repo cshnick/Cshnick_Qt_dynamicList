@@ -3,6 +3,10 @@
 
 #include <QtPlugin>
 #include "PInfoHandler.h"
+QT_BEGIN_NAMESPACE
+class QPluginLoader;
+QT_END_NAMESPACE
+
 
 namespace Plugins {
 
