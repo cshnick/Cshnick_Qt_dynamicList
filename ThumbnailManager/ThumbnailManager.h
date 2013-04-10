@@ -47,9 +47,6 @@ public:
 
     static QString sizeToString(const QSize &pSize);
 
-protected:
-    bool eventFilter(QObject *, QEvent *);
-
 signals:
     void requestCleanImageServicerQueue();
     void sliderReleased();

@@ -36,6 +36,29 @@ struct Page
 };
 Q_DECLARE_METATYPE(Page*)
 
+class DPSlider : public QSlider
+{
+    Q_OBJECT
+
+public:
+    DPSlider(QWidget *parent = 0)
+        : QSlider(parent)
+    {
+        setOrientation(Qt::Horizontal);
+    }
+
+protected:
+    void mouseReleaseEvent(QMouseEvent *ev)
+    {
+        emit issreleased();
+        QSlider::mouseReleaseEvent(ev);
+    }
+
+signals:
+    void issreleased();
+
+};
+
 class DynPicturesManagerlPrivate
 {
 public:
@@ -60,7 +83,7 @@ public:
 
             QObject::connect(view, SIGNAL(manipulateContentsStarted()), q, SLOT(pauseCleaningTimer()));
             QObject::connect(view, SIGNAL(manipulateContentsFinished()), q, SLOT(playCleaningTimer()));
-            QObject::connect(q, SIGNAL(sliderReleased()), view, SLOT(reactOnSliderReleased()));
+            QObject::connect(mSlider, SIGNAL(issreleased()), view, SLOT(reactOnSliderReleased()));
             QObject::connect(q, SIGNAL(memoryCleaned()), view, SLOT(reactOnSliderReleased()));
             QObject::connect(view, SIGNAL(iconSizeChanged(QSize)), q, SLOT(setMaxIconSize(QSize)));
         }
@@ -228,10 +251,9 @@ public:
         QPushButton *magicButton = new QPushButton("Don't push");
         QObject::connect(magicButton, SIGNAL(clicked()), q, SLOT(cleanMemory()));
         sliderLayout->addWidget(magicButton);
-        mSlider = new QSlider(Qt::Horizontal);
+        mSlider = new DPSlider();
         mSlider->setMinimum(Globals::defaultCellSize);
         mSlider->setMaximum(Globals::maxCellSize);
-        mSlider->installEventFilter(q);
 
         QObject::connect(mSlider, SIGNAL(valueChanged(int)), mMainView, SLOT(setNewGridSize(int)));
 
@@ -291,7 +313,9 @@ int DynPicturesManagerlPrivate::mMaxIconSize = Globals::defaultCellSize;
 
 DynPicturesManager::DynPicturesManager(QObject *parent)
     :QObject(parent)
-    , d(new DynPicturesManagerlPrivate(this))
+    ,d(new DynPicturesManagerlPrivate(this))
+
+
 {
     qRegisterMetaType<DPImageRequest>("DPImageRequest");
     qRegisterMetaType<DPImageReply>("DPImageReply");
@@ -364,18 +388,6 @@ QString DynPicturesManager::sizeToString(const QSize &pSize)
 {
     return QString("%1x%2").arg(pSize.width()).arg(pSize.height());
 }
-
-bool DynPicturesManager::eventFilter(QObject *obj, QEvent *event)
-{
-    if (d) {
-        if (obj == d->mSlider && event->type() == QEvent::MouseButtonRelease) {
-            emit sliderReleased();
-        }
-    }
-
-    return QObject::eventFilter(obj, event);
-}
-
 
 namespace Utils {
 class SpanUnionHandler {
@@ -1131,4 +1143,4 @@ void DPImageServicer::replyCleanImageServicerQueue()
     d->requests.clear();
 }
 
-//#include "dynpicturesmodel.moc" //add include if going to implement QObject subclasses
+#include "ThumbnailManager.moc"

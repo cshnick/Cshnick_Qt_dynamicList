@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <misc>
-    <pathToPlugin>TstDocGenerator1/TstDocGenerator1</pathToPlugin>
+    <pathToPlugin>./TstDocGenerator1</pathToPlugin>
     <Enabled>true</Enabled>
     <displayname>TstDocGenerator1</displayname>
     <icon>und</icon>

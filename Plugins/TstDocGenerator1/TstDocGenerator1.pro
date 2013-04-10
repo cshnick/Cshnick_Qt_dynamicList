@@ -1,41 +1,24 @@
-#-------------------------------------------------
-#
-# Project created by QtCreator 2013-03-26T10:01:20
-#
-#-------------------------------------------------
-
 TARGET = TstDocGenerator1
 TEMPLATE = lib
-CONFIG += plugin
-
-LIB_ALIAS = lib
-
-INCLUDEPATH += $$PWD/../../Documents \
-               $$PWD/../../ThumbnailManager \
-               $$PWD/../../TstGenerator \
-               $$PWD/../../PluginManager \
-               $$PWD/../../Globals
-
-
-LIBS += -L$$PWD/../../Documents -lDocuments \
-
-SERVICE_DIR =  $$PWD/service
-MOC_DIR = $$SERVICE_DIR
-OBJECTS_DIR = $$SERVICE_DIR
 
 DEFINES += TSTDOCGENERATOR1_LIBRARY
-
 QT += xml
+
+include($$PWD/../../Globals/plugin.pri)
+
+INCLUDEPATH += $$includeDependency(Globals) \
+               $$includeDependency(PluginManager) \
+               $$includeDependency(Documents) \
+               $$includeDependency(ThumbnailManager) \
+               $$includeDependency(TstGenerator) \
+
+LIBS += $$libraryDependency(PluginManager) \
+        $$libraryDependency(Documents)
 
 SOURCES += tstdocgenerator1.cpp
 
 HEADERS += tstdocgenerator1.h\
         TstDocGenerator1_global.h
-
-unix:!symbian {
-    target.path = /usr/lib
-    INSTALLS += target
-}
 
 RESOURCES += \
     res.qrc

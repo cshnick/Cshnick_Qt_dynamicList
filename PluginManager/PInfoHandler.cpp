@@ -101,7 +101,8 @@ class PInfoHandlerPrivate
             return QString();
         }
 
-        return QFileInfo(mOwnPath.toLocalFile()).dir().absolutePath() + "/" + pluginRelativePath;
+        QString returnPath = QFileInfo(mOwnPath.toLocalFile()).dir().absolutePath() + "/" + pluginRelativePath;
+        return returnPath;
     }
 
 private:

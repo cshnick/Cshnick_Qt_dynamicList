@@ -1,47 +1,28 @@
-#-------------------------------------------------
-#
-# Project created by QtCreator 2013-03-21T20:34:24
-#
-#-------------------------------------------------
-
 TARGET = Documents
 TEMPLATE = lib
 
-include($$PWD/../ThumbnailManager/ThumbnailManager.pri)
-
-SERVICE_DIR =  $$PWD/service
-MOC_DIR = $$SERVICE_DIR
-OBJECTS_DIR = $$SERVICE_DIR
-
-DESTDIR = $$PWD
-
 DEFINES += DOCUMENTS_LIBRARY
 
-SOURCES += DocumentManager.cpp \
-    ExplorerModel.cpp \
-    Node.cpp \
-    ExplorerView.cpp \
-    IDocumentGenerator.cpp
+include($$PWD/../ThumbnailManager/ThumbnailManager.pri)
+include($$PWD/../Globals/shared_lib.pri)
 
-QT += core gui
+SOURCES += DocumentManager.cpp \
+           ExplorerModel.cpp \
+           Node.cpp \
+           ExplorerView.cpp \
+           IDocumentGenerator.cpp
 
 HEADERS += DocumentManager.h\
         DocumentManager_global.h \
-    ExplorerModel.h \
-    Node.h \
-    ExplorerView.h \
-    IDocumentGenerator.h
+        ExplorerModel.h \
+        Node.h \
+        ExplorerView.h \
+        IDocumentGenerator.h
 
-unix:!symbian {
-   target.path = /usr/lib
-   INSTALLS += target
-}
+INCLUDEPATH += $$includeDependency(Globals) \
+               $$includeDependency(PluginManager) \
+               $$includeDependency(ThumbnailManager)
 
-INCLUDEPATH += \
-               ../ThumbnailManager \
-               ../PluginManager \
-               ../Globals
+LIBS += $$libraryDependency(PluginManager)
 
 
-LIBS += \
-#        -L$$PWD/../TstDocGenerator1 -lTstDocGenerator1

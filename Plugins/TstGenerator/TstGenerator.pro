@@ -1,32 +1,19 @@
-#-------------------------------------------------
-#
-# Project created by QtCreator 2013-02-26T20:49:50
-#
-#-------------------------------------------------
-
-INCLUDEPATH += $$PWD/../../ThumbnailManager \
-               $$PWD/../../PluginManager \
-               $$PWD/../../Globals
-
-LIBS += -L$$PWD/../../Documents -lDocuments
-
-CONFIG += plugin
-
 TARGET = TstGenerator
 TEMPLATE = lib
 
-SERVICE_DIR =  $$PWD/service
-MOC_DIR = $$SERVICE_DIR
-OBJECTS_DIR = $$SERVICE_DIR
-
 DEFINES += TSTGENERATOR_LIBRARY
+
+include($$PWD/../../Globals/plugin.pri)
+
+INCLUDEPATH += $$includeDependency(Globals) \
+               $$includeDependency(PluginManager) \
+               $$includeDependency(ThumbnailManager)
+
+LIBS += $$libraryDependency(Documents) \
+        $$libraryDependency(PluginManager)
 
 SOURCES += tstgenerator.cpp
 
 HEADERS += tstgenerator.h\
         TstGenerator_global.h
 
-unix:!symbian {
-    target.path = /usr/lib
-    INSTALLS += target
-}

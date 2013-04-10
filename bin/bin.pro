@@ -1,17 +1,14 @@
+TEMPLATE = app
 QT += gui
 
-INCLUDEPATH += $$PWD/../Documents \
-               $$PWD/../ThumbnailManager \
-               $$PWD/../Plugins/TstGenerator \
-               $$PWD/../Plugins/TstDocGenerator1 \
-               $$PWD/../PluginManager \
-               $$PWD/../Globals
+include($$PWD/../Globals/bin.pri)
 
-LIBS += \
-        -L$$PWD/../Documents -lDocuments \
-        -L$$PWD/../Plugins/TstGenerator -lTstGenerator \
-        -L$$PWD/../Plugins/TstDocGenerator1 -lTstDocGenerator1 \
-        -L$$PWD/../PluginManager -lPluginManager
+INCLUDEPATH += $$includeDependency(Globals) \
+               $$includeDependency(Documents) \
+               $$includeDependency(PluginManager)
+
+LIBS += $$libraryDependency(PluginManager) \
+        $$libraryDependency(Documents)
 
 SOURCES += \
     main.cpp
