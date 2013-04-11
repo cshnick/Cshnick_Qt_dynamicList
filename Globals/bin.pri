@@ -4,7 +4,7 @@ defineReplace(includeDependency) {
      return(../$$1)
 }
 
-DESTDIR = $$EXEC_PATH
+DESTDIR = $$APP_DIR
 
 include(rpath.pri)
 

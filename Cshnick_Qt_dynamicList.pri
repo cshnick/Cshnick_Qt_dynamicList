@@ -29,10 +29,10 @@ APP_DIR = $$TOP_LEVEL_BUILD_DIR/bin
 #  message(EXEC_PATH $$EXEC_PATH)
 
 } else { #macx
-  APP_TARGET = "docManager"
-  LIB_PATH = $$APP_DIR/$$APP_TARGET.app/Contents/Resources
-  PLUGIN_PATH = $$LIB_PATH
-  EXEC_PATH = $$APP_DIR/$$APP_TARGET.app/Contents/MacOS
+  APP_TARGET = "bin"
+  PLUGIN_PATH = $$APP_DIR/$${APP_TARGET}.app/Contents/PlugIns
+  LIB_PATH = $$PLUGIN_PATH
+  EXEC_PATH = $$APP_DIR/$${APP_TARGET}.app/Contents/MacOS
 }
 
 CONFIG += depend_includepath
