@@ -4,6 +4,7 @@
 #include <QUrl>
 #include <QDir>
 #include <QDebug>
+#include <QApplication>
 #include "globals.h"
 
 namespace Plugins {
@@ -15,7 +16,7 @@ public:
     PluginManagerPrivate(PluginManager *pq)
         : q(pq)
     {
-        mSearchDirs.append(pluginInfoPath);
+        mSearchDirs.append(q->makeAbsolute(pluginInfoPath));
         loadPlugins();
     }
 
@@ -23,6 +24,7 @@ public:
     {
         foreach (QUrl nextDir, mSearchDirs) {
             QDir dir(nextDir.toLocalFile());
+            qDebug() << "Loading from dir" << dir.absolutePath();
             Q_ASSERT(dir.exists());
 
             QFileInfoList pluginCandidates = dir.entryInfoList(QStringList() << "*"+plugInfoSuffix, QDir::Files | QDir::Readable | QDir::NoDotAndDotDot | QDir::NoSymLinks);
@@ -228,6 +230,21 @@ bool PluginManager::removeObject(QObject *object)
 bool PluginManager::loadPlugin(const PInfoHandler &metaData)
 {
     return mInstance->d->checkAndLoadPlugin(metaData);
+}
+
+QString PluginManager::makeAbsolute(const QString &relativePath)
+{
+    if (!qApp) {
+        qDebug() << Q_FUNC_INFO << "No application instance created";
+        return relativePath;
+    }
+    if (relativePath.startsWith("/")) {
+        qDebug() << Q_FUNC_INFO << "Allready absolute";
+        return relativePath;
+    }
+    qDebug() << Q_FUNC_INFO << "relative path is " << relativePath;
+    return qApp->applicationDirPath() + "/" + relativePath;
+
 }
 
 } // namespace Plugins

@@ -53,6 +53,7 @@ public:
 
     static bool removeObject(QObject *object);
     static bool loadPlugin(const PInfoHandler &metaData);
+    static QString makeAbsolute(const QString &relativePath);
 
 signals:
     void pluginDynamiclyLoaded(QPluginLoader *newPluginLoader);
