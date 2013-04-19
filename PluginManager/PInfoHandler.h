@@ -1,6 +1,7 @@
 #ifndef PINFOHANDLER_H
 #define PINFOHANDLER_H
 
+#include "PluginManager_global.h"
 #include <QMetaType>
 
 QT_BEGIN_NAMESPACE
@@ -10,7 +11,7 @@ QT_END_NAMESPACE
 namespace Plugins {
 
     class PInfoHandlerPrivate;
-    class PInfoHandler
+    class PLUGINMANAGERSHARED_EXPORT PInfoHandler
     {
     public:
         PInfoHandler();

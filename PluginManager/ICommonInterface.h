@@ -1,6 +1,7 @@
 #ifndef ICOMMONINTERFACE_H
 #define ICOMMONINTERFACE_H
 
+#include "PluginManager_global.h"
 #include <QtPlugin>
 #include "PInfoHandler.h"
 QT_BEGIN_NAMESPACE
@@ -10,7 +11,7 @@ QT_END_NAMESPACE
 
 namespace Plugins {
 
-class ICommonInterface
+class PLUGINMANAGERSHARED_EXPORT ICommonInterface
 {
 public:
     ICommonInterface()

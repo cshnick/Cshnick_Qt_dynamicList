@@ -5,7 +5,7 @@ defineReplace(includeDependency) {
 }
 
 win32 {
-    DLLDESTDIR = $$IDE_APP_PATH
+    DLLDESTDIR = $$APP_DIR
 }
 
 DESTDIR = $$LIB_PATH

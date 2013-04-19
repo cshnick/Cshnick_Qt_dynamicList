@@ -1,7 +1,7 @@
 TEMPLATE = subdirs
 CONFIG += ordered
 
-SUBDIRS += \
+SUBDIRS *= \
     TstGenerator \
     TstDocGenerator1 \
 

@@ -133,7 +133,7 @@ private:
     QDomDocument mData;
 };
 
-struct DocumentNodePrivate
+class DocumentNodePrivate
 {
     MetaDataHandler hl;
     QUrl mOwnDir;

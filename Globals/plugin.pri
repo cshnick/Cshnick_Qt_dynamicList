@@ -4,6 +4,11 @@ defineReplace(includeDependency) {
      return(../../$$1)
 }
 
+defineReplace(toWinSlashes) {
+    1 ~= s,/,\\,g
+    return($$quote($$1))
+}
+
 defineReplace(existingMetaFile) {
     exists($$1) {
         return($$1)
@@ -27,7 +32,13 @@ defineTest(post_copy_files) {
     }
     for(NEXT_FILE, SOURCE_FILES) {
         exists($$NEXT_FILE) {
-            QMAKE_POST_LINK += $${QMAKE_COPY} $${NEXT_FILE} $${DESTINATION_DIR}
+            !win* {
+                QMAKE_POST_LINK += $${QMAKE_COPY} $${NEXT_FILE} $${DESTINATION_DIR}
+            } else {
+                FROM = $$toWinSlashes($${NEXT_FILE})
+                TO = $$toWinSlashes($${DESTINATION_DIR})
+                win*:QMAKE_POST_LINK += $${QMAKE_COPY} $${FROM} $${TO}$$escape_expand(\\n\\t)
+            }
             message(postLinkAdded)
         }
     }
@@ -45,13 +56,6 @@ PINFO_PATH = $$PLUGINS_SRC_DIR/lib$${TARGET}.pinfo
 PINFO_PATH = $$existingMetaFile($${PINFO_PATH})
 !isEmpty(PINFO_PATH) {
     post_copy_files($$PINFO_PATH, $$PLUGIN_PATH)
-}
-!isEmpty() {
-#    QMAKE_POST_LINK += $${QMAKE_COPY} /home/ilia/Documents/notes /home/ilia/Development/sources/App/own/Cshnick_Qt_dynamicList/build/plugins/notes1
-    FLS = 1 2 3 4 5
-    DEST = "/home/ilia"
-    post_copy_files($${PINFO_PATH}, $$PLUGIN_PATH)
-    message(PINFO_FILE $$PINFO_PATH)
 }
 
 macx {
@@ -71,7 +75,7 @@ macx {
     QMAKE_RPATHDIR =
 }
 
-CONFIG += include_source_dir \
+CONFIG *= include_source_dir \
           plugin \
           plugin_with_soname
  

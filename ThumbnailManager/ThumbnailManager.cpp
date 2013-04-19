@@ -395,19 +395,19 @@ public:
 
     struct Span {
         Span(int pmin, int pmax)
-            : min(qMin(pmin, pmax)), max(qMax(pmin, pmax))
+            : mMin(qMin(pmin, pmax)), mMax(qMax(pmin, pmax))
         {;}
-        Span() : min(-1), max(-1) {;}
+        Span() : mMin(-1), mMax(-1) {;}
 
         bool contains(int pValue)
         {
-            return (pValue >= min) && (pValue <= max);
+            return (pValue >= mMin) && (pValue <= mMax);
         }
 
-        operator bool() {return min < 0 || max < 0;} //only positive and equal to zero values allowed
+        operator bool() {return mMin < 0 || mMax < 0;} //only positive and equal to zero values allowed
 
-        int min;
-        int max;
+        int mMin;
+        int mMax;
     };
 
 
@@ -418,7 +418,7 @@ public:
     {
         for (int i = 0; i < mUnion.count(); i++) {
             Span nextSpan = mUnion.at(i);
-            qDebug() << "Span" << i << "{" << nextSpan.min << nextSpan.max << "}";
+            qDebug() << "Span" << i << "{" << nextSpan.mMin << nextSpan.mMax << "}";
         }
 
     }
@@ -449,12 +449,12 @@ private:
     void processNext(Span candidate, uint index)
     {
         Span &nextSpan = mUnion[index];
-        if (candidate.min < nextSpan.min) {
-            if (candidate.max < nextSpan.min) { //Span starts and ends before the current span within the union
+        if (candidate.mMin < nextSpan.mMin) {
+            if (candidate.mMax < nextSpan.mMin) { //Span starts and ends before the current span within the union
                 mUnion.insert(index, candidate);
                 return;
-            } else if (nextSpan.contains(candidate.max)) { //Starts before and ends within the current span of the union
-                nextSpan.min = candidate.min;
+            } else if (nextSpan.contains(candidate.mMax)) { //Starts before and ends within the current span of the union
+                nextSpan.mMin = candidate.mMin;
                 return;
             } else { //Span starts before and ends after the current span
                 mUnion.removeAt(index);
@@ -465,11 +465,11 @@ private:
                 }
                 return;
             }
-        } else if (nextSpan.contains(candidate.min)) {
-            if (nextSpan.contains(candidate.max)) {//Span origin lies within the current span and ends there
+        } else if (nextSpan.contains(candidate.mMin)) {
+            if (nextSpan.contains(candidate.mMax)) {//Span origin lies within the current span and ends there
                 return;
             } else { //Span origin lies within the current span and ends outside it
-                candidate.min = nextSpan.min;
+                candidate.mMin = nextSpan.mMin;
                 mUnion.removeAt(index);
                 if (index == static_cast<uint>(mUnion.size())) {
                     mUnion.append(candidate); //no more indecies left
@@ -490,10 +490,10 @@ private:
     void processNextExpanding(Span candidate, uint index)
     {
         Span &nextSpan = mUnion[index];
-        if (candidate.max < nextSpan.min) { //candidate ends before current span origin
+        if (candidate.mMax < nextSpan.mMin) { //candidate ends before current span origin
             mUnion.insert(index, candidate);
-        } else if (nextSpan.contains(candidate.max)) { //candidate ends within the current span
-            nextSpan.min = candidate.min;
+        } else if (nextSpan.contains(candidate.mMax)) { //candidate ends within the current span
+            nextSpan.mMin = candidate.mMin;
         } else { //current span is overlapped by candidate
             mUnion.removeAt(index);
             if (index == static_cast<uint>(mUnion.size())) {

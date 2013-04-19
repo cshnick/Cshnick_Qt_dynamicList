@@ -15,7 +15,7 @@
 
 class DynPicturesManagerlPrivate;
 class DPListModelPrivate;
-class Page;
+struct Page;
 class DPListView; 
 class DPImageGenerator;
 class DPImageServicer;
